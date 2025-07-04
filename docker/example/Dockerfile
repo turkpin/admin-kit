@@ -43,14 +43,10 @@ RUN chown -R www-data:www-data /var/www/html \
     && chmod -R 755 /var/www/html/storage \
     && chmod -R 755 /var/www/html/public/uploads
 
-# Copy Nginx configuration
-COPY docker/nginx.conf /etc/nginx/nginx.conf
-
-# Copy Supervisor configuration
-COPY docker/supervisord.conf /etc/supervisor/conf.d/supervisord.conf
-
-# Copy PHP configuration
-COPY docker/php.ini /usr/local/etc/php/conf.d/custom.ini
+# Copy configuration files from project root
+COPY nginx.conf /etc/nginx/nginx.conf
+COPY supervisord.conf /etc/supervisor/conf.d/supervisord.conf
+COPY php.ini /usr/local/etc/php/conf.d/custom.ini
 
 # Expose port
 EXPOSE 80
