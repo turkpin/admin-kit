@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Giriş Yap - {$brand_name}</title>
+    <title>{adminkit_translate('login')} - {$brand_name}</title>
     
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -19,7 +19,7 @@
                     {$brand_name}
                 </h2>
                 <p class="mt-2 text-center text-sm text-gray-600">
-                    Admin paneline giriş yapın
+                    {adminkit_translate('login_to_admin_panel')}
                 </p>
             </div>
             
@@ -32,7 +32,7 @@
             <form class="mt-8 space-y-6" method="POST" action="{url route='login'}">
                 <div class="rounded-md shadow-sm -space-y-px">
                     <div>
-                        <label for="email" class="sr-only">E-posta adresi</label>
+                        <label for="email" class="sr-only">{adminkit_translate('email')}</label>
                         <input 
                             id="email" 
                             name="email" 
@@ -40,12 +40,12 @@
                             autocomplete="email" 
                             required 
                             class="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-t-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm" 
-                            placeholder="E-posta adresi"
+                            placeholder="{adminkit_translate('email')}"
                             value="{$email|default:''}"
                         >
                     </div>
                     <div>
-                        <label for="password" class="sr-only">Şifre</label>
+                        <label for="password" class="sr-only">{adminkit_translate('password')}</label>
                         <input 
                             id="password" 
                             name="password" 
@@ -53,7 +53,7 @@
                             autocomplete="current-password" 
                             required 
                             class="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-b-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm" 
-                            placeholder="Şifre"
+                            placeholder="{adminkit_translate('password')}"
                         >
                     </div>
                 </div>
@@ -67,13 +67,13 @@
                             class="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
                         >
                         <label for="remember-me" class="ml-2 block text-sm text-gray-900">
-                            Beni hatırla
+                            {adminkit_translate('remember_me')}
                         </label>
                     </div>
 
                     <div class="text-sm">
                         <a href="#" class="font-medium text-indigo-600 hover:text-indigo-500">
-                            Şifrenizi mi unuttunuz?
+                            {adminkit_translate('forgot_password')}
                         </a>
                     </div>
                 </div>
@@ -88,7 +88,7 @@
                                 <path fill-rule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clip-rule="evenodd" />
                             </svg>
                         </span>
-                        Giriş Yap
+                        {adminkit_translate('login')}
                     </button>
                 </div>
             </form>

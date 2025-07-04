@@ -4,8 +4,8 @@
 <div class="space-y-6">
     <!-- Page Header -->
     <div class="bg-white rounded-lg shadow p-6">
-        <h1 class="text-2xl font-bold text-gray-900">Hoş Geldiniz!</h1>
-        <p class="text-gray-600 mt-2">AdminKit kontrol paneline hoş geldiniz. Buradan sistemin genel durumunu takip edebilirsiniz.</p>
+        <h1 class="text-2xl font-bold text-gray-900">{adminkit_translate('welcome')}</h1>
+        <p class="text-gray-600 mt-2">{adminkit_translate('dashboard_welcome_text')}</p>
     </div>
 
     <!-- Stats Grid -->
@@ -48,7 +48,7 @@
         <!-- Quick Actions -->
         <div class="bg-white rounded-lg shadow">
             <div class="p-6 border-b border-gray-200">
-                <h3 class="text-lg font-medium text-gray-900">Hızlı İşlemler</h3>
+                <h3 class="text-lg font-medium text-gray-900">{adminkit_translate('quick_actions')}</h3>
             </div>
             <div class="p-6">
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -57,7 +57,7 @@
                             {if in_array('new', $entity_config.actions)}
                             <a href="{url route="{$entity_name}/new"}" class="flex items-center p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
                                 {icon name="plus" class="w-5 h-5 text-indigo-600 mr-3"}
-                                <span class="text-sm font-medium text-gray-900">Yeni {$entity_config.title}</span>
+                                <span class="text-sm font-medium text-gray-900">{adminkit_translate('add_new')} {$entity_config.title}</span>
                             </a>
                             {/if}
                         {/foreach}
@@ -69,25 +69,25 @@
         <!-- System Info -->
         <div class="bg-white rounded-lg shadow">
             <div class="p-6 border-b border-gray-200">
-                <h3 class="text-lg font-medium text-gray-900">Sistem Bilgileri</h3>
+                <h3 class="text-lg font-medium text-gray-900">{adminkit_translate('system_info')}</h3>
             </div>
             <div class="p-6">
                 <dl class="space-y-3">
                     <div class="flex justify-between">
-                        <dt class="text-sm font-medium text-gray-500">PHP Sürümü</dt>
+                        <dt class="text-sm font-medium text-gray-500">{adminkit_translate('php_version')}</dt>
                         <dd class="text-sm text-gray-900">{$smarty.const.PHP_VERSION}</dd>
                     </div>
                     <div class="flex justify-between">
-                        <dt class="text-sm font-medium text-gray-500">AdminKit Sürümü</dt>
-                        <dd class="text-sm text-gray-900">1.0.0</dd>
+                        <dt class="text-sm font-medium text-gray-500">{adminkit_translate('adminkit_version')}</dt>
+                        <dd class="text-sm text-gray-900">1.0.6</dd>
                     </div>
                     <div class="flex justify-between">
-                        <dt class="text-sm font-medium text-gray-500">Giriş Zamanı</dt>
+                        <dt class="text-sm font-medium text-gray-500">{adminkit_translate('login_time')}</dt>
                         <dd class="text-sm text-gray-900">{$smarty.now|date_format:'d.m.Y H:i'}</dd>
                     </div>
                     {if isset($current_user)}
                     <div class="flex justify-between">
-                        <dt class="text-sm font-medium text-gray-500">Kullanıcı</dt>
+                        <dt class="text-sm font-medium text-gray-500">{adminkit_translate('current_user')}</dt>
                         <dd class="text-sm text-gray-900">{$current_user->getName()}</dd>
                     </div>
                     {/if}
@@ -100,8 +100,8 @@
     {if isset($entities) && count($entities) > 0}
     <div class="bg-white rounded-lg shadow">
         <div class="p-6 border-b border-gray-200">
-            <h3 class="text-lg font-medium text-gray-900">Varlıklar</h3>
-            <p class="text-sm text-gray-600 mt-1">Yönetebileceğiniz tüm varlıklar</p>
+            <h3 class="text-lg font-medium text-gray-900">{adminkit_translate('entities')}</h3>
+            <p class="text-sm text-gray-600 mt-1">{adminkit_translate('manageable_entities')}</p>
         </div>
         <div class="p-6">
             <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -114,12 +114,12 @@
                     <div class="flex space-x-2">
                         {if in_array('index', $entity_config.actions)}
                         <a href="{url route=$entity_name}" class="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">
-                            Listele
+                            {adminkit_translate('list_action')}
                         </a>
                         {/if}
                         {if in_array('new', $entity_config.actions)}
                         <a href="{url route="{$entity_name}/new"}" class="text-xs bg-green-100 text-green-800 px-2 py-1 rounded">
-                            Yeni Ekle
+                            {adminkit_translate('add_new_action')}
                         </a>
                         {/if}
                     </div>

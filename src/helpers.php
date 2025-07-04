@@ -105,6 +105,26 @@ if (!function_exists('adminkit_translate')) {
     }
 }
 
+if (!function_exists('adminkit_translate_js')) {
+    /**
+     * Get JavaScript translations object
+     */
+    function adminkit_translate_js(?string $locale = null): string
+    {
+        $locale = $locale ?? 'tr';
+        
+        $translationFile = adminkit_path("src/Translations/{$locale}.php");
+        if (file_exists($translationFile)) {
+            $translations = require $translationFile;
+        } else {
+            $translations = [];
+        }
+        
+        // Return JavaScript object
+        return json_encode($translations, JSON_UNESCAPED_UNICODE);
+    }
+}
+
 if (!function_exists('adminkit_env')) {
     /**
      * Get environment variable with AdminKit prefix
