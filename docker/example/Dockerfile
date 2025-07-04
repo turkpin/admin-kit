@@ -29,6 +29,9 @@ WORKDIR /var/www/html
 # Copy application files
 COPY . .
 
+# Make adminkit command executable
+RUN chmod +x bin/adminkit
+
 # Install PHP dependencies
 RUN composer install --no-dev --optimize-autoloader
 
@@ -47,6 +50,9 @@ RUN chown -R www-data:www-data /var/www/html \
 COPY nginx.conf /etc/nginx/nginx.conf
 COPY supervisord.conf /etc/supervisor/conf.d/supervisord.conf
 COPY php.ini /usr/local/etc/php/conf.d/custom.ini
+
+# Create symlink for global adminkit command
+RUN ln -sf /var/www/html/bin/adminkit /usr/local/bin/adminkit
 
 # Expose port
 EXPOSE 80
