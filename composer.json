@@ -1,27 +1,53 @@
 {
     "name": "turkpin/admin-kit",
-    "description": "Modern admin panel generator for Slim Framework with Smarty templates and Doctrine ORM",
+    "description": "Modern Turkish-first enterprise admin panel solution with 20+ features beyond EasyAdmin. Includes 2FA, WebSocket, Queue system, Performance monitoring, and 600+ Turkish translations.",
     "type": "library",
     "license": "MIT",
+    "homepage": "https://github.com/turkpin/admin-kit",
+    "support": {
+        "issues": "https://github.com/turkpin/admin-kit/issues",
+        "docs": "https://github.com/turkpin/admin-kit/blob/main/docs/README.md",
+        "source": "https://github.com/turkpin/admin-kit"
+    },
     "authors": [
         {
-            "name": "Turkpin",
+            "name": "Turkpin Dev Team",
+            "email": "devteam@turkpin.com",
+            "homepage": "https://github.com/turkpin"
+        },
+        {
+            "name": "Turkpin Community",
             "email": "info@turkpin.com"
         }
     ],
     "keywords": [
         "admin",
         "panel",
+        "admin-panel",
+        "easyadmin",
+        "enterprise",
+        "turkish",
+        "crud",
+        "generator",
+        "2fa",
+        "websocket",
+        "queue",
+        "performance",
+        "monitoring",
         "slim",
         "smarty",
         "doctrine",
-        "crud",
-        "generator",
-        "admin-panel",
-        "backend"
+        "tailwind",
+        "real-time",
+        "i18n",
+        "türkçe"
     ],
     "require": {
         "php": ">=8.1",
+        "ext-json": "*",
+        "ext-mbstring": "*",
+        "ext-openssl": "*",
+        "ext-pdo": "*",
         "slim/slim": "^4.0",
         "slim/psr7": "^1.6",
         "smarty/smarty": "^4.3",
@@ -31,33 +57,87 @@
         "symfony/console": "^6.0|^7.0",
         "symfony/security-core": "^6.0|^7.0",
         "symfony/password-hasher": "^6.0|^7.0",
+        "symfony/process": "^6.0|^7.0",
         "psr/container": "^2.0",
-        "psr/log": "^3.0"
+        "psr/log": "^3.0",
+        "psr/cache": "^3.0",
+        "spatie/array-to-xml": "^3.2",
+        "phpoffice/phpspreadsheet": "^1.29",
+        "endroid/qr-code": "^5.0"
     },
     "require-dev": {
         "phpunit/phpunit": "^10.0",
-        "phpstan/phpstan": "^1.10"
+        "phpstan/phpstan": "^1.10",
+        "friendsofphp/php-cs-fixer": "^3.0",
+        "psalm/plugin-phpunit": "^0.18"
+    },
+    "suggest": {
+        "ext-redis": "For Redis cache and queue driver support",
+        "ext-gd": "For image processing and QR code generation",
+        "ext-imagick": "For advanced image manipulation",
+        "ext-zip": "For asset bundling and export features",
+        "ext-intl": "For enhanced internationalization support",
+        "predis/predis": "For Redis support without PHP Redis extension",
+        "ratchet/pawl": "For WebSocket client functionality",
+        "react/socket": "For WebSocket server functionality"
     },
     "autoload": {
         "psr-4": {
             "Turkpin\\AdminKit\\": "src/"
-        }
+        },
+        "files": [
+            "src/helpers.php"
+        ]
     },
     "autoload-dev": {
         "psr-4": {
             "Turkpin\\AdminKit\\Tests\\": "tests/"
         }
     },
+    "bin": [
+        "bin/adminkit"
+    ],
+    "scripts": {
+        "post-install-cmd": [
+            "@php bin/adminkit install --quiet"
+        ],
+        "post-update-cmd": [
+            "@php bin/adminkit update --quiet"
+        ],
+        "test": "phpunit",
+        "test-coverage": "phpunit --coverage-html coverage",
+        "analyse": "phpstan analyse",
+        "format": "php-cs-fixer fix",
+        "check-format": "php-cs-fixer fix --dry-run --diff",
+        "install-assets": "@php bin/adminkit publish:assets",
+        "install-templates": "@php bin/adminkit publish:templates",
+        "install-migrations": "@php bin/adminkit publish:migrations"
+    },
     "extra": {
         "branch-alias": {
             "dev-main": "1.0-dev"
+        },
+        "adminkit": {
+            "providers": [
+                "Turkpin\\AdminKit\\Providers\\AdminKitServiceProvider"
+            ],
+            "assets": {
+                "css": "assets/css",
+                "js": "assets/js",
+                "images": "assets/images"
+            },
+            "templates": "templates",
+            "migrations": "migrations",
+            "translations": "src/Translations"
         }
     },
     "config": {
         "sort-packages": true,
         "allow-plugins": {
             "composer/package-versions-deprecated": true
-        }
+        },
+        "preferred-install": "dist",
+        "optimize-autoloader": true
     },
     "minimum-stability": "stable",
     "prefer-stable": true

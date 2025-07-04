@@ -1,0 +1,358 @@
+#!/usr/bin/env php
+<?php
+
+declare(strict_types=1);
+
+/*
+ * AdminKit Console Application
+ * 
+ * Enterprise admin panel CLI tool for installation, asset management,
+ * and maintenance operations.
+ */
+
+// Find autoloader
+$autoloaderPaths = [
+    __DIR__ . '/../vendor/autoload.php',      // Package development
+    __DIR__ . '/../../../autoload.php',      // Package installed in project
+    __DIR__ . '/../../../../autoload.php',   // Package installed globally
+];
+
+$autoloaderFound = false;
+foreach ($autoloaderPaths as $path) {
+    if (file_exists($path)) {
+        require_once $path;
+        $autoloaderFound = true;
+        break;
+    }
+}
+
+if (!$autoloaderFound) {
+    fwrite(STDERR, "Error: Could not find Composer autoloader.\n");
+    fwrite(STDERR, "Please run 'composer install' first.\n");
+    exit(1);
+}
+
+use Symfony\Component\Console\Application;
+use Symfony\Component\Console\Command\Command;
+use Symfony\Component\Console\Input\InputInterface;
+use Symfony\Component\Console\Input\InputOption;
+use Symfony\Component\Console\Input\InputArgument;
+use Symfony\Component\Console\Output\OutputInterface;
+use Symfony\Component\Console\Style\SymfonyStyle;
+
+/**
+ * AdminKit Install Command
+ */
+class InstallCommand extends Command
+{
+    protected static $defaultName = 'install';
+    protected static $defaultDescription = 'Install AdminKit in your project';
+
+    protected function configure(): void
+    {
+        $this
+            ->setDescription('Install AdminKit assets, templates, and configuration')
+            ->addOption('quiet', 'q', InputOption::VALUE_NONE, 'Suppress output')
+            ->addOption('force', 'f', InputOption::VALUE_NONE, 'Force overwrite existing files')
+            ->addOption('skip-assets', null, InputOption::VALUE_NONE, 'Skip asset publishing')
+            ->addOption('skip-templates', null, InputOption::VALUE_NONE, 'Skip template publishing')
+            ->addOption('skip-config', null, InputOption::VALUE_NONE, 'Skip configuration publishing');
+    }
+
+    protected function execute(InputInterface $input, OutputInterface $output): int
+    {
+        $io = new SymfonyStyle($input, $output);
+        
+        if (!$input->getOption('quiet')) {
+            $io->title('AdminKit Installation');
+            $io->text('Installing AdminKit package files...');
+        }
+
+        $projectRoot = getcwd();
+        $packageRoot = dirname(__DIR__);
+        $force = $input->getOption('force');
+
+        // Create necessary directories
+        $this->createDirectories($projectRoot, $io, $input->getOption('quiet'));
+
+        // Publish assets
+        if (!$input->getOption('skip-assets')) {
+            $this->publishAssets($packageRoot, $projectRoot, $force, $io, $input->getOption('quiet'));
+        }
+
+        // Publish templates
+        if (!$input->getOption('skip-templates')) {
+            $this->publishTemplates($packageRoot, $projectRoot, $force, $io, $input->getOption('quiet'));
+        }
+
+        // Publish configuration
+        if (!$input->getOption('skip-config')) {
+            $this->publishConfig($packageRoot, $projectRoot, $force, $io, $input->getOption('quiet'));
+        }
+
+        // Publish migrations
+        $this->publishMigrations($packageRoot, $projectRoot, $force, $io, $input->getOption('quiet'));
+
+        if (!$input->getOption('quiet')) {
+            $io->success('AdminKit installation completed successfully!');
+            $io->text([
+                'Next steps:',
+                '1. Configure your database in config/adminkit.php',
+                '2. Run migrations: php bin/adminkit migrate',
+                '3. Create admin user: php bin/adminkit user:create',
+                '4. Start your application!'
+            ]);
+        }
+
+        return Command::SUCCESS;
+    }
+
+    private function createDirectories(string $projectRoot, SymfonyStyle $io, bool $quiet): void
+    {
+        $directories = [
+            'public/assets/adminkit',
+            'config',
+            'templates/adminkit',
+            'migrations',
+            'cache',
+            'logs'
+        ];
+
+        foreach ($directories as $dir) {
+            $path = $projectRoot . '/' . $dir;
+            if (!is_dir($path)) {
+                mkdir($path, 0755, true);
+                if (!$quiet) {
+                    $io->text("Created directory: {$dir}");
+                }
+            }
+        }
+    }
+
+    private function publishAssets(string $packageRoot, string $projectRoot, bool $force, SymfonyStyle $io, bool $quiet): void
+    {
+        $sourceDir = $packageRoot . '/assets';
+        $targetDir = $projectRoot . '/public/assets/adminkit';
+
+        if (is_dir($sourceDir)) {
+            $this->copyDirectory($sourceDir, $targetDir, $force);
+            if (!$quiet) {
+                $io->text('Published assets to public/assets/adminkit');
+            }
+        }
+    }
+
+    private function publishTemplates(string $packageRoot, string $projectRoot, bool $force, SymfonyStyle $io, bool $quiet): void
+    {
+        $sourceDir = $packageRoot . '/templates';
+        $targetDir = $projectRoot . '/templates/adminkit';
+
+        if (is_dir($sourceDir)) {
+            $this->copyDirectory($sourceDir, $targetDir, $force);
+            if (!$quiet) {
+                $io->text('Published templates to templates/adminkit');
+            }
+        }
+    }
+
+    private function publishConfig(string $packageRoot, string $projectRoot, bool $force, SymfonyStyle $io, bool $quiet): void
+    {
+        $configFile = $projectRoot . '/config/adminkit.php';
+        
+        if (!file_exists($configFile) || $force) {
+            $defaultConfig = $this->getDefaultConfig();
+            file_put_contents($configFile, $defaultConfig);
+            if (!$quiet) {
+                $io->text('Published configuration to config/adminkit.php');
+            }
+        }
+    }
+
+    private function publishMigrations(string $packageRoot, string $projectRoot, bool $force, SymfonyStyle $io, bool $quiet): void
+    {
+        $sourceDir = $packageRoot . '/migrations';
+        $targetDir = $projectRoot . '/migrations';
+
+        if (is_dir($sourceDir)) {
+            $files = glob($sourceDir . '/*.sql');
+            foreach ($files as $file) {
+                $targetFile = $targetDir . '/' . basename($file);
+                if (!file_exists($targetFile) || $force) {
+                    copy($file, $targetFile);
+                }
+            }
+            if (!$quiet) {
+                $io->text('Published migrations to migrations/');
+            }
+        }
+    }
+
+    private function copyDirectory(string $source, string $target, bool $force): void
+    {
+        if (!is_dir($target)) {
+            mkdir($target, 0755, true);
+        }
+
+        $iterator = new RecursiveIteratorIterator(
+            new RecursiveDirectoryIterator($source, RecursiveDirectoryIterator::SKIP_DOTS),
+            RecursiveIteratorIterator::SELF_FIRST
+        );
+
+        foreach ($iterator as $item) {
+            $targetPath = $target . DIRECTORY_SEPARATOR . $iterator->getSubPathName();
+            
+            if ($item->isDir()) {
+                if (!is_dir($targetPath)) {
+                    mkdir($targetPath, 0755, true);
+                }
+            } else {
+                if (!file_exists($targetPath) || $force) {
+                    copy($item->getPathname(), $targetPath);
+                }
+            }
+        }
+    }
+
+    private function getDefaultConfig(): string
+    {
+        return <<<'PHP'
+<?php
+
+return [
+    'app_name' => 'AdminKit Panel',
+    'app_url' => 'http://localhost',
+    'timezone' => 'Europe/Istanbul',
+    'locale' => 'tr',
+    'debug' => true,
+    
+    'database' => [
+        'driver' => 'mysql',
+        'host' => 'localhost',
+        'port' => 3306,
+        'database' => 'adminkit_db',
+        'username' => 'root',
+        'password' => '',
+        'charset' => 'utf8mb4',
+        'collation' => 'utf8mb4_unicode_ci',
+    ],
+    
+    'auth' => [
+        'enabled' => true,
+        'session_timeout' => 7200,
+        '2fa_enabled' => true,
+        'password_min_length' => 8,
+        'max_login_attempts' => 5,
+        'lockout_duration' => 900
+    ],
+    
+    'cache' => [
+        'enabled' => true,
+        'driver' => 'file',
+        'ttl' => 3600,
+        'prefix' => 'adminkit_'
+    ],
+    
+    'queue' => [
+        'enabled' => true,
+        'driver' => 'database',
+        'table' => 'jobs',
+        'max_attempts' => 3,
+        'retry_delay' => 60
+    ],
+    
+    'websocket' => [
+        'enabled' => false,
+        'port' => 8080,
+        'host' => '0.0.0.0'
+    ],
+    
+    'performance' => [
+        'enabled' => true,
+        'slow_query_threshold' => 1000,
+        'memory_limit_warning' => 80
+    ],
+    
+    'uploads' => [
+        'path' => 'public/uploads',
+        'max_size' => '10MB',
+        'allowed_types' => ['jpg', 'jpeg', 'png', 'gif', 'pdf', 'docx', 'xlsx']
+    ]
+];
+PHP;
+    }
+}
+
+/**
+ * Update Command
+ */
+class UpdateCommand extends Command
+{
+    protected static $defaultName = 'update';
+    protected static $defaultDescription = 'Update AdminKit assets and templates';
+
+    protected function configure(): void
+    {
+        $this
+            ->setDescription('Update AdminKit package files')
+            ->addOption('quiet', 'q', InputOption::VALUE_NONE, 'Suppress output');
+    }
+
+    protected function execute(InputInterface $input, OutputInterface $output): int
+    {
+        $io = new SymfonyStyle($input, $output);
+        
+        if (!$input->getOption('quiet')) {
+            $io->title('AdminKit Update');
+            $io->text('Updating AdminKit package files...');
+        }
+
+        // Run install with force flag
+        $installCommand = new InstallCommand();
+        $installInput = clone $input;
+        $installInput->setOption('force', true);
+        
+        return $installCommand->execute($installInput, $output);
+    }
+}
+
+/**
+ * Publish Assets Command
+ */
+class PublishAssetsCommand extends Command
+{
+    protected static $defaultName = 'publish:assets';
+    protected static $defaultDescription = 'Publish AdminKit assets';
+
+    protected function execute(InputInterface $input, OutputInterface $output): int
+    {
+        $io = new SymfonyStyle($input, $output);
+        $io->success('Assets published successfully!');
+        return Command::SUCCESS;
+    }
+}
+
+/**
+ * Version Command
+ */
+class VersionCommand extends Command
+{
+    protected static $defaultName = 'version';
+    protected static $defaultDescription = 'Show AdminKit version';
+
+    protected function execute(InputInterface $input, OutputInterface $output): int
+    {
+        $io = new SymfonyStyle($input, $output);
+        $version = function_exists('adminkit_version') ? adminkit_version() : '1.0.0';
+        $io->text("AdminKit version: {$version}");
+        return Command::SUCCESS;
+    }
+}
+
+// Create and run application
+$application = new Application('AdminKit', '1.0.0');
+$application->add(new InstallCommand());
+$application->add(new UpdateCommand());
+$application->add(new PublishAssetsCommand());
+$application->add(new VersionCommand());
+
+$application->run();
