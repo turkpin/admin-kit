@@ -4,10 +4,10 @@
 declare(strict_types=1);
 
 /*
- * AdminKit Console Application v1.0.5
+ * AdminKit Console Application v1.0.6
  * 
  * Enterprise admin panel CLI tool with intelligent installation,
- * automatic Docker setup, and smart environment management.
+ * automatic Docker setup, smart environment management, and database migration support.
  */
 
 // Find autoloader
@@ -47,24 +47,25 @@ use Symfony\Component\Console\Question\ChoiceQuestion;
  */
 function getDatabase(): ?PDO
 {
-    $configFile = getcwd() . '/config/adminkit.php';
-    if (!file_exists($configFile)) {
+    $env = loadEnvironment();
+    
+    $host = $env['DB_HOST'] ?? 'localhost';
+    $port = $env['DB_PORT'] ?? '3306';
+    $database = $env['DB_DATABASE'] ?? '';
+    $username = $env['DB_USERNAME'] ?? 'root';
+    $password = $env['DB_PASSWORD'] ?? '';
+    $driver = $env['DB_CONNECTION'] ?? 'mysql';
+    
+    if (empty($database)) {
         return null;
     }
     
-    $config = require $configFile;
-    $db = $config['database'] ?? [];
-    
     try {
-        $dsn = sprintf('%s:host=%s;port=%s;dbname=%s;charset=%s',
-            $db['driver'] ?? 'mysql',
-            $db['host'] ?? 'localhost',
-            $db['port'] ?? 3306,
-            $db['database'] ?? '',
-            $db['charset'] ?? 'utf8mb4'
+        $dsn = sprintf('%s:host=%s;port=%s;dbname=%s;charset=utf8mb4',
+            $driver, $host, $port, $database
         );
         
-        return new PDO($dsn, $db['username'] ?? '', $db['password'] ?? '', [
+        return new PDO($dsn, $username, $password, [
             PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
             PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC
         ]);
@@ -95,14 +96,287 @@ function loadEnvironment(): array
 }
 
 /**
- * AdminKit Intelligent Install Command v1.0.5
- * 
- * Features:
- * - Interactive Docker setup with smart prompts
- * - Automatic .env file creation and configuration
- * - Smart environment variable updating for Docker
- * - Docker files auto-publishing
- * - Zero manual configuration steps
+ * Migrate Command - Database Migration Support
+ */
+class MigrateCommand extends Command
+{
+    protected function configure(): void
+    {
+        $this
+            ->setName('migrate')
+            ->setDescription('🗄️ Run AdminKit database migrations')
+            ->addOption('rollback', 'r', InputOption::VALUE_NONE, 'Rollback the last migration')
+            ->addOption('fresh', null, InputOption::VALUE_NONE, 'Drop all tables and re-run migrations')
+            ->addOption('force', 'f', InputOption::VALUE_NONE, 'Force migration in production');
+    }
+
+    protected function execute(InputInterface $input, OutputInterface $output): int
+    {
+        $io = new SymfonyStyle($input, $output);
+        
+        $io->title('🗄️ AdminKit Database Migration');
+        
+        $pdo = getDatabase();
+        if (!$pdo) {
+            $io->error('Database connection failed. Please check your .env configuration.');
+            return Command::FAILURE;
+        }
+        
+        try {
+            // Create migrations table if not exists
+            $this->createMigrationsTable($pdo);
+            
+            if ($input->getOption('fresh')) {
+                return $this->migrateFresh($pdo, $io);
+            } elseif ($input->getOption('rollback')) {
+                return $this->rollback($pdo, $io);
+            } else {
+                return $this->migrate($pdo, $io);
+            }
+        } catch (Exception $e) {
+            $io->error('Migration failed: ' . $e->getMessage());
+            return Command::FAILURE;
+        }
+    }
+    
+    private function createMigrationsTable(PDO $pdo): void
+    {
+        $sql = "CREATE TABLE IF NOT EXISTS migrations (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            migration VARCHAR(255) NOT NULL,
+            executed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            INDEX idx_migration (migration)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4";
+        
+        $pdo->exec($sql);
+    }
+    
+    private function migrate(PDO $pdo, SymfonyStyle $io): int
+    {
+        $migrationsDir = getcwd() . '/migrations';
+        
+        if (!is_dir($migrationsDir)) {
+            $io->error('Migrations directory not found. Run `php vendor/bin/adminkit install` first.');
+            return Command::FAILURE;
+        }
+        
+        // Get executed migrations
+        $stmt = $pdo->query("SELECT migration FROM migrations ORDER BY id");
+        $executed = $stmt->fetchAll(PDO::FETCH_COLUMN);
+        
+        // Get migration files
+        $files = glob($migrationsDir . '/*.sql');
+        sort($files);
+        
+        $newMigrations = 0;
+        
+        foreach ($files as $file) {
+            $migration = basename($file);
+            
+            if (!in_array($migration, $executed)) {
+                $io->text("Running migration: <comment>{$migration}</comment>");
+                
+                $sql = file_get_contents($file);
+                $pdo->exec($sql);
+                
+                // Record migration
+                $stmt = $pdo->prepare("INSERT INTO migrations (migration) VALUES (?)");
+                $stmt->execute([$migration]);
+                
+                $newMigrations++;
+            }
+        }
+        
+        if ($newMigrations > 0) {
+            $io->success("Successfully ran {$newMigrations} migrations.");
+        } else {
+            $io->info('No new migrations to run.');
+        }
+        
+        return Command::SUCCESS;
+    }
+    
+    private function migrateFresh(PDO $pdo, SymfonyStyle $io): int
+    {
+        if (!$io->confirm('This will drop all tables and re-run migrations. Are you sure?', false)) {
+            $io->text('Migration cancelled.');
+            return Command::SUCCESS;
+        }
+        
+        // Drop all tables
+        $stmt = $pdo->query("SHOW TABLES");
+        $tables = $stmt->fetchAll(PDO::FETCH_COLUMN);
+        
+        $pdo->exec("SET FOREIGN_KEY_CHECKS = 0");
+        foreach ($tables as $table) {
+            $pdo->exec("DROP TABLE IF EXISTS `{$table}`");
+        }
+        $pdo->exec("SET FOREIGN_KEY_CHECKS = 1");
+        
+        $io->text('Dropped all tables.');
+        
+        // Re-run migrations
+        return $this->migrate($pdo, $io);
+    }
+    
+    private function rollback(PDO $pdo, SymfonyStyle $io): int
+    {
+        $stmt = $pdo->query("SELECT migration FROM migrations ORDER BY id DESC LIMIT 1");
+        $lastMigration = $stmt->fetchColumn();
+        
+        if (!$lastMigration) {
+            $io->info('No migrations to rollback.');
+            return Command::SUCCESS;
+        }
+        
+        // Simple rollback - just remove from migrations table
+        // In a real system, you'd have rollback scripts
+        $stmt = $pdo->prepare("DELETE FROM migrations WHERE migration = ?");
+        $stmt->execute([$lastMigration]);
+        
+        $io->success("Rolled back migration: {$lastMigration}");
+        $io->warning('Note: This only removes the migration record. Manual cleanup may be required.');
+        
+        return Command::SUCCESS;
+    }
+}
+
+/**
+ * User Create Command
+ */
+class UserCreateCommand extends Command
+{
+    protected function configure(): void
+    {
+        $this
+            ->setName('user:create')
+            ->setDescription('👤 Create an admin user')
+            ->addArgument('email', InputArgument::OPTIONAL, 'User email address')
+            ->addArgument('password', InputArgument::OPTIONAL, 'User password')
+            ->addOption('admin', 'a', InputOption::VALUE_NONE, 'Create user with admin role');
+    }
+
+    protected function execute(InputInterface $input, OutputInterface $output): int
+    {
+        $io = new SymfonyStyle($input, $output);
+        
+        $io->title('👤 Create AdminKit User');
+        
+        $pdo = getDatabase();
+        if (!$pdo) {
+            $io->error('Database connection failed. Please check your .env configuration.');
+            return Command::FAILURE;
+        }
+        
+        // Check if users table exists
+        try {
+            $pdo->query("SELECT 1 FROM users LIMIT 1");
+        } catch (Exception $e) {
+            $io->error('Users table not found. Please run migrations first: php vendor/bin/adminkit migrate');
+            return Command::FAILURE;
+        }
+        
+        $email = $input->getArgument('email');
+        $password = $input->getArgument('password');
+        
+        if (!$email) {
+            $email = $io->ask('Email address');
+        }
+        
+        if (!$password) {
+            $password = $io->askHidden('Password (input hidden)');
+        }
+        
+        if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            $io->error('Invalid email address.');
+            return Command::FAILURE;
+        }
+        
+        if (strlen($password) < 6) {
+            $io->error('Password must be at least 6 characters long.');
+            return Command::FAILURE;
+        }
+        
+        try {
+            // Check if user exists
+            $stmt = $pdo->prepare("SELECT id FROM users WHERE email = ?");
+            $stmt->execute([$email]);
+            
+            if ($stmt->fetch()) {
+                $io->error('User with this email already exists.');
+                return Command::FAILURE;
+            }
+            
+            // Create user
+            $hashedPassword = password_hash($password, PASSWORD_DEFAULT);
+            $isAdmin = $input->getOption('admin') ? 1 : 0;
+            
+            $stmt = $pdo->prepare("
+                INSERT INTO users (email, password, name, is_active, is_admin, created_at) 
+                VALUES (?, ?, ?, 1, ?, NOW())
+            ");
+            
+            $name = explode('@', $email)[0];
+            $stmt->execute([$email, $hashedPassword, ucfirst($name), $isAdmin]);
+            
+            $role = $isAdmin ? 'admin' : 'user';
+            $io->success("User created successfully with {$role} privileges!");
+            $io->text("Email: <comment>{$email}</comment>");
+            
+        } catch (Exception $e) {
+            $io->error('Failed to create user: ' . $e->getMessage());
+            return Command::FAILURE;
+        }
+        
+        return Command::SUCCESS;
+    }
+}
+
+/**
+ * Serve Command - Development Server
+ */
+class ServeCommand extends Command
+{
+    protected function configure(): void
+    {
+        $this
+            ->setName('serve')
+            ->setDescription('🚀 Start AdminKit development server')
+            ->addOption('host', null, InputOption::VALUE_OPTIONAL, 'Server host', 'localhost')
+            ->addOption('port', 'p', InputOption::VALUE_OPTIONAL, 'Server port', '8000');
+    }
+
+    protected function execute(InputInterface $input, OutputInterface $output): int
+    {
+        $io = new SymfonyStyle($input, $output);
+        
+        $host = $input->getOption('host');
+        $port = $input->getOption('port');
+        
+        $io->title('🚀 AdminKit Development Server');
+        $io->text([
+            "Starting server at <comment>http://{$host}:{$port}</comment>",
+            'Press Ctrl+C to stop the server',
+            ''
+        ]);
+        
+        // Check if public directory exists
+        $publicDir = getcwd() . '/public';
+        if (!is_dir($publicDir)) {
+            $io->error('Public directory not found. Please ensure AdminKit is properly installed.');
+            return Command::FAILURE;
+        }
+        
+        // Start PHP development server
+        $command = sprintf('php -S %s:%s -t %s', $host, $port, $publicDir);
+        passthru($command);
+        
+        return Command::SUCCESS;
+    }
+}
+
+/**
+ * AdminKit Intelligent Install Command v1.0.6
  */
 class InstallCommand extends Command
 {
@@ -126,7 +400,7 @@ class InstallCommand extends Command
         $io = new SymfonyStyle($input, $output);
         
         if (!$input->getOption('quiet')) {
-            $io->title('🚀 AdminKit v1.0.5 - Intelligent Installation');
+            $io->title('🚀 AdminKit v1.0.6 - Intelligent Installation');
             $io->text([
                 '✨ Smart Docker integration with automatic setup',
                 '🔧 Zero-configuration environment management',
@@ -186,7 +460,7 @@ class InstallCommand extends Command
         $this->publishMigrations($packageRoot, $projectRoot, $force, $io, $input->getOption('quiet'));
 
         if (!$input->getOption('quiet')) {
-            $io->success('🎉 AdminKit v1.0.5 installation completed successfully!');
+            $io->success('🎉 AdminKit v1.0.6 installation completed successfully!');
             
             $envExists = file_exists($projectRoot . '/.env');
             $dockerExists = file_exists($projectRoot . '/docker-compose.yml');
@@ -227,11 +501,12 @@ class InstallCommand extends Command
             }
             
             $io->text([
-                '<info>🚀 AdminKit v1.0.5 Features:</info>',
+                '<info>🚀 AdminKit v1.0.6 Features:</info>',
                 '• ✅ Zero-configuration setup completed',
                 '• ✅ Environment automatically configured',
                 '• ✅ Migration-ready state achieved',
-                '• ✅ Production-ready deployment'
+                '• ✅ Production-ready deployment',
+                '• ✅ Translation system integrated'
             ]);
         }
 
@@ -371,7 +646,7 @@ class InstallCommand extends Command
     private function getBasicEnvContent(): string
     {
         return <<<ENV
-# AdminKit v1.0.5 Environment Configuration
+# AdminKit v1.0.6 Environment Configuration
 
 # Application Settings
 APP_NAME="AdminKit Panel"
@@ -603,7 +878,7 @@ class UpdateCommand extends Command
         $io = new SymfonyStyle($input, $output);
         
         if (!$input->getOption('quiet')) {
-            $io->title('🔄 AdminKit v1.0.5 Update');
+            $io->title('🔄 AdminKit v1.0.6 Update');
             $io->text('Updating AdminKit package files...');
         }
 
@@ -633,20 +908,21 @@ class VersionCommand extends Command
         
         $io->title('📋 AdminKit Version Information');
         $io->definitionList(
-            ['AdminKit version' => '1.0.5'],
+            ['AdminKit version' => '1.0.6'],
             ['Release date' => '2025-01-07'],
             ['PHP version' => PHP_VERSION],
-            ['Features' => 'Intelligent installation, Auto Docker setup, Smart environment'],
+            ['Features' => 'Translation system, Database migrations, User management'],
         );
         
         $io->text([
             '',
-            '<info>🚀 AdminKit v1.0.5 Features:</info>',
-            '• ✅ Intelligent installation workflow',
-            '• ✅ Automatic Docker setup with interactive prompts',
+            '<info>🚀 AdminKit v1.0.6 Features:</info>',
+            '• ✅ Comprehensive translation system (TR/EN)',
+            '• ✅ Database migration support',
+            '• ✅ User management commands',
+            '• ✅ Development server',
+            '• ✅ Intelligent Docker setup',
             '• ✅ Smart environment configuration',
-            '• ✅ Zero manual configuration steps',
-            '• ✅ Migration-ready state immediately',
         ]);
         
         return Command::SUCCESS;
@@ -654,11 +930,20 @@ class VersionCommand extends Command
 }
 
 // Create and run application
-$application = new Application('AdminKit', '1.0.5');
+$application = new Application('AdminKit', '1.0.6');
 
 // Installation & Management
 $application->add(new InstallCommand());
 $application->add(new UpdateCommand());
 $application->add(new VersionCommand());
+
+// Database & Migration
+$application->add(new MigrateCommand());
+
+// User Management
+$application->add(new UserCreateCommand());
+
+// Development
+$application->add(new ServeCommand());
 
 $application->run();
