@@ -13,6 +13,41 @@ AdminKit, EasyAdmin'in tüm özelliklerini içerirken aşağıdaki alanlarda üs
 - **Esneklik**: Plugin mimarisi ve hook sistemi ile genişletilebilirlik
 - **Gerçek Zamanlı**: WebSocket desteği ile canlı güncellemeler
 
+## 📚 Dokümantasyon
+
+AdminKit kapsamlı dokümantasyon sistemine sahiptir:
+
+### 🚀 Başlangıç Rehberleri
+- **[Kurulum Rehberi](docs/installation.md)** - Sistem gereksinimleri ve adım adım kurulum
+- **[Hızlı Başlangıç](docs/quick-start.md)** - 5 dakikada çalışan blog sistemi
+- **[Konfigürasyon](docs/configuration.md)** - Detaylı yapılandırma seçenekleri
+
+### 📖 Kullanım Kılavuzları
+- **[Alan Türleri](docs/field-types.md)** - 14 farklı alan türü ve kullanımları
+- **[API Referansı](docs/api-reference.md)** - Tam API dokümantasyonu
+- **[Deployment](docs/deployment.md)** - Production ortamına yayınlama
+
+### 🏢 Enterprise Servisler
+- **[Queue Service](docs/services/queue-service.md)** - Arkaplan işleme ve zamanlanmış görevler
+- **[Performance Service](docs/services/performance-service.md)** - Performans izleme ve profiling
+- **[WebSocket Service](docs/services/websocket-service.md)** - Gerçek zamanlı özellikler
+- **[Asset Service](docs/services/asset-service.md)** - Asset yönetimi ve build araçları
+- **[Dynamic Forms](docs/services/dynamic-forms.md)** - Koşullu alanlar ve çok adımlı formlar
+- **[Tüm Servisler](docs/services/)** - Enterprise servislerin tam listesi
+
+### 🎯 Pratik Örnekler
+- **[Temel CRUD](docs/tutorials/basic-crud.md)** - İlk entity'nizi oluşturun
+- **[E-ticaret Setup](docs/tutorials/ecommerce-setup.md)** - Online mağaza admin paneli
+- **[Blog CMS](docs/tutorials/blog-management.md)** - İçerik yönetim sistemi
+- **[Daha Fazla Örnek](docs/examples/)** - Hazır kullanıma ready projeler
+
+### 🔧 Gelişmiş Konular
+- **[Güvenlik](docs/advanced/security.md)** - 2FA ve güvenlik best practices
+- **[Performans](docs/advanced/performance.md)** - Optimizasyon teknikleri
+- **[Özelleştirme](docs/advanced/customization.md)** - Theme ve UI özelleştirme
+
+**➡️ [Tüm Dokümantasyon](docs/)** - Kapsamlı rehber ve örnekler
+
 ## Özellikler
 
 ### Temel Özellikler
@@ -52,6 +87,8 @@ AdminKit, EasyAdmin'in tüm özelliklerini içerirken aşağıdaki alanlarda üs
 ```bash
 composer require turkpin/admin-kit
 ```
+
+**Detaylı kurulum için**: [Kurulum Rehberi](docs/installation.md)
 
 ## Temel Kullanım
 
@@ -117,305 +154,31 @@ $adminKit->addWidget('user_count', [
 $adminKit->run();
 ```
 
-### 2. Gelişmiş Entity Yapılandırması
+**Daha fazla örnek için**: [Hızlı Başlangıç](docs/quick-start.md)
+
+### 2. Enterprise Özellikler
 
 ```php
-$adminKit->addEntity('Product', [
-    'table' => 'products',
-    'title' => 'Ürünler',
-    'fields' => [
-        'name' => [
-            'type' => 'text',
-            'label' => 'Ürün Adı',
-            'required' => true,
-            'max_length' => 255
-        ],
-        'description' => [
-            'type' => 'textarea',
-            'label' => 'Açıklama',
-            'rows' => 5
-        ],
-        'price' => [
-            'type' => 'number',
-            'label' => 'Fiyat',
-            'min' => 0,
-            'step' => 0.01,
-            'currency' => 'TL'
-        ],
-        'image' => [
-            'type' => 'image',
-            'label' => 'Ürün Resmi',
-            'upload_path' => 'uploads/products',
-            'allowed_types' => ['jpg', 'png', 'webp'],
-            'max_size' => '2MB'
-        ],
-        'category_id' => [
-            'type' => 'association',
-            'label' => 'Kategori',
-            'target_entity' => 'Category',
-            'display_field' => 'name'
-        ],
-        'tags' => [
-            'type' => 'association',
-            'label' => 'Etiketler',
-            'target_entity' => 'Tag',
-            'multiple' => true
-        ],
-        'is_featured' => [
-            'type' => 'boolean',
-            'label' => 'Öne Çıkan'
-        ],
-        'status' => [
-            'type' => 'choice',
-            'label' => 'Durum',
-            'choices' => [
-                'draft' => 'Taslak',
-                'published' => 'Yayında',
-                'archived' => 'Arşivlendi'
-            ]
-        ]
-    ],
-    'permissions' => ['product.view', 'product.create', 'product.edit', 'product.delete']
-]);
-```
-
-### 3. Kullanıcı Rolleri ve İzinler
-
-```php
-// Roller oluştur
-$adminKit->createRole('admin', 'Yönetici');
-$adminKit->createRole('editor', 'Editör');
-$adminKit->createRole('viewer', 'Görüntüleyici');
-
-// İzinler oluştur
-$adminKit->createPermission('user.view', 'Kullanıcıları Görüntüle');
-$adminKit->createPermission('user.create', 'Kullanıcı Oluştur');
-$adminKit->createPermission('user.edit', 'Kullanıcı Düzenle');
-$adminKit->createPermission('user.delete', 'Kullanıcı Sil');
-
-// Role izin ata
-$adminKit->assignPermissionToRole('admin', ['user.view', 'user.create', 'user.edit', 'user.delete']);
-$adminKit->assignPermissionToRole('editor', ['user.view', 'user.edit']);
-$adminKit->assignPermissionToRole('viewer', ['user.view']);
-
-// Kullanıcıya rol ata
-$adminKit->assignRoleToUser($userId, 'admin');
-```
-
-### 4. Background Jobs ve Queue Sistemi
-
-```php
-// E-posta gönderme işini kuyruğa ekle
+// Queue sistemi
 $adminKit->dispatchJob('email', [
     'to' => 'user@example.com',
-    'subject' => 'Hoş Geldiniz',
-    'template' => 'welcome_email',
-    'data' => ['name' => 'Ahmet Yılmaz']
-], ['queue' => 'high', 'delay' => 0]);
+    'subject' => 'Hoş Geldiniz'
+], ['queue' => 'high']);
 
-// Veri dışa aktarma işini zamanla
-$adminKit->dispatchJob('export', [
-    'entity' => 'User',
-    'format' => 'excel',
-    'filters' => ['is_active' => true]
-], ['queue' => 'default', 'delay' => 300]); // 5 dakika sonra
+// 2FA etkinleştir
+$adminKit->enable2FA();
 
-// Tekrarlanan temizlik işi zamanla
-$adminKit->scheduleJob('cleanup', [
-    'type' => 'temp_files'
-], '@daily'); // Her gün çalıştır
-```
-
-### 5. Performance İzleme
-
-```php
-// Performans metrikleri al
-$performance = $adminKit->getPerformanceService();
-
-// Yavaş sorguları görüntüle
-$slowQueries = $performance->getSlowQueries(24); // Son 24 saat
-
-// Sistem durumunu kontrol et
-$systemHealth = $performance->getSystemHealth();
-
-// Özel metrik kaydet
-$performance->recordMetric('user_login', 1, ['ip' => $userIp]);
-```
-
-### 6. Dynamic Forms ve Conditional Fields
-
-```php
-// Dinamik form oluştur
-$dynamicForm = $adminKit->getDynamicFormService();
-
-$dynamicForm->registerForm('user_registration', [
-    'title' => 'Kullanıcı Kaydı',
-    'description' => 'Yeni kullanıcı kayıt formu',
-    'steps' => [
-        [
-            'title' => 'Kişisel Bilgiler',
-            'description' => 'Temel bilgilerinizi girin',
-            'fields' => [
-                'name' => ['type' => 'text', 'label' => 'Ad Soyad', 'required' => true],
-                'email' => ['type' => 'email', 'label' => 'E-posta', 'required' => true],
-                'user_type' => [
-                    'type' => 'choice',
-                    'label' => 'Kullanıcı Tipi',
-                    'choices' => ['individual' => 'Bireysel', 'corporate' => 'Kurumsal']
-                ]
-            ]
-        ],
-        [
-            'title' => 'Ek Bilgiler',
-            'fields' => [
-                'company_name' => [
-                    'type' => 'text',
-                    'label' => 'Şirket Adı',
-                    'required' => true
-                ],
-                'tax_number' => ['type' => 'text', 'label' => 'Vergi Numarası']
-            ]
-        ]
-    ],
-    'ajax_validation' => true,
-    'auto_save' => true
-]);
-
-// Koşullu alan mantığı ekle
-$dynamicForm->addCondition('user_registration', 'company_name', [
-    'dependsOn' => 'user_type',
-    'operator' => 'equals',
-    'value' => 'corporate',
-    'action' => 'show',
-    'animation' => 'fade'
-]);
-```
-
-### 7. Real-time Features ve WebSocket
-
-```php
-// WebSocket sunucusunu başlat
-$webSocket = $adminKit->getWebSocketService();
-
-// Gerçek zamanlı bildirim gönder
-$webSocket->sendToUser(123, [
+// Real-time bildirim gönder
+$adminKit->getWebSocketService()->sendToUser(123, [
     'title' => 'Yeni Mesaj',
-    'message' => 'Size yeni bir mesaj geldi',
-    'type' => 'info'
-], 'notification');
-
-// Tüm kullanıcılara yayın yap
-$webSocket->broadcast('system', [
-    'title' => 'Sistem Duyurusu',
-    'message' => 'Sistem bakımı 30 dakika içinde başlayacak'
+    'message' => 'Size yeni bir mesaj geldi'
 ]);
 
-// Kullanıcı varlığını takip et
-$webSocket->updateUserPresence(123, 'online');
+// Performans izleme
+$metrics = $adminKit->getPerformanceService()->getMetrics();
 ```
 
-### 8. Asset Management
-
-```php
-// Asset yöneticisini al
-$assetService = $adminKit->getAssetService();
-
-// Yeni asset kaydet
-$assetService->registerAsset('custom-dashboard.css', [
-    'type' => 'css',
-    'path' => 'css/custom-dashboard.css',
-    'dependencies' => ['admin-core.css'],
-    'priority' => 85,
-    'critical' => true
-]);
-
-// Asset'leri derle
-$results = $assetService->compile();
-
-// CSS asset'lerini render et
-echo $assetService->renderCss();
-
-// JavaScript asset'lerini render et
-echo $assetService->renderJs();
-```
-
-## Konfigürasyon
-
-### Temel Konfigürasyon
-
-```php
-$config = [
-    'app_name' => 'AdminKit Panel',
-    'app_url' => 'https://admin.example.com',
-    'timezone' => 'Europe/Istanbul',
-    'locale' => 'tr',
-    
-    'database' => [
-        'driver' => 'mysql',
-        'host' => 'localhost',
-        'port' => 3306,
-        'database' => 'admin_db',
-        'username' => 'admin_user',
-        'password' => 'secure_password',
-        'charset' => 'utf8mb4'
-    ],
-    
-    'auth' => [
-        'enabled' => true,
-        'login_route' => '/admin/login',
-        'logout_route' => '/admin/logout',
-        'session_timeout' => 7200, // 2 saat
-        '2fa_enabled' => true,
-        'password_min_length' => 8
-    ],
-    
-    'cache' => [
-        'enabled' => true,
-        'driver' => 'redis', // file, redis, memcached
-        'ttl' => 3600,
-        'redis' => [
-            'host' => 'localhost',
-            'port' => 6379,
-            'database' => 0
-        ]
-    ],
-    
-    'websocket' => [
-        'enabled' => true,
-        'port' => 8080,
-        'host' => '0.0.0.0',
-        'max_connections' => 1000,
-        'auth_required' => true,
-        'fallback_polling' => true
-    ],
-    
-    'assets' => [
-        'enabled' => true,
-        'versioning' => true,
-        'minification' => true,
-        'compression' => true,
-        'cdn_enabled' => false,
-        'cdn_url' => ''
-    ],
-    
-    'uploads' => [
-        'path' => 'public/uploads',
-        'max_size' => '10MB',
-        'allowed_types' => ['jpg', 'png', 'gif', 'pdf', 'docx']
-    ],
-    
-    'notifications' => [
-        'email_enabled' => true,
-        'smtp' => [
-            'host' => 'smtp.gmail.com',
-            'port' => 587,
-            'username' => 'noreply@example.com',
-            'password' => 'app_password',
-            'encryption' => 'tls'
-        ]
-    ]
-];
-```
+**Enterprise özellikler için**: [Servis Dokümantasyonu](docs/services/)
 
 ## Field Types
 
@@ -447,35 +210,7 @@ AdminKit 14 farklı alan tipini destekler:
 - `association`: Entity ilişkisi (autocomplete ile)
 - `collection`: Çoklu form koleksiyonu
 
-## Migration ve Deployment
-
-### Veritabanı Migration
-
-```bash
-# Migration dosyalarını çalıştır
-php vendor/bin/adminkit migrate
-
-# Seed verilerini yükle
-php vendor/bin/adminkit seed
-
-# Cache'i temizle
-php vendor/bin/adminkit cache:clear
-```
-
-### Production Deployment
-
-```bash
-# Production optimizasyonları
-composer install --no-dev --optimize-autoloader
-php vendor/bin/adminkit cache:warm
-php vendor/bin/adminkit assets:build
-
-# WebSocket sunucusunu başlat
-php vendor/bin/adminkit websocket:start
-
-# Queue worker'ını başlat
-php vendor/bin/adminkit queue:work
-```
+**Detaylı kullanım için**: [Alan Türleri Dokümantasyonu](docs/field-types.md)
 
 ## API Kullanımı
 
@@ -510,6 +245,8 @@ GET /api/sse-messages
 GET /api/websocket/info
 ```
 
+**API detayları için**: [API Referansı](docs/api-reference.md)
+
 ## Internationalization (i18n)
 
 AdminKit 600+ çeviri anahtarı ile tam Türkçe ve İngilizce desteği sunar:
@@ -526,15 +263,24 @@ echo $localization->get('welcome_message', ['name' => 'Ahmet']); // "Hoş geldin
 $localization->setLocale('en'); // İngilizce'ye geç
 ```
 
-### Yeni Çeviri Ekleme
+**Çok dil desteği için**: [Internationalization Rehberi](docs/advanced/internationalization.md)
 
-```php
-// src/Translations/tr.php
-return [
-    'my_custom_key' => 'Özel mesajım',
-    'parameterized_message' => 'Merhaba :name, hoş geldiniz!'
-];
+## Production Deployment
+
+```bash
+# Production optimizasyonları
+composer install --no-dev --optimize-autoloader
+php vendor/bin/adminkit cache:warm
+php vendor/bin/adminkit assets:build
+
+# WebSocket sunucusunu başlat
+php vendor/bin/adminkit websocket:start
+
+# Queue worker'ını başlat
+php vendor/bin/adminkit queue:work
 ```
+
+**Production setup için**: [Deployment Rehberi](docs/deployment.md)
 
 ## Lisans
 
@@ -543,11 +289,14 @@ MIT License. Detaylar için [LICENSE](LICENSE) dosyasına bakın.
 ## Destek
 
 Sorularınız için:
-- GitHub Issues: [https://github.com/turkpin/admin-kit/issues](https://github.com/turkpin/admin-kit/issues)
-- E-posta: support@turkpin.com
-- Dokümantasyon: [https://docs.turkpin.com/admin-kit](https://docs.turkpin.com/admin-kit)
+- **[Dokümantasyon](docs/)** - Kapsamlı rehberler ve örnekler
+- **GitHub Issues**: [admin-kit/issues](https://github.com/turkpin/admin-kit/issues)
+- **E-posta**: support@turkpin.com
+- **Türkçe Destek**: Tam Türkçe dokümantasyon ve topluluk desteği
 
 ## Katkıda Bulunma
+
+AdminKit açık kaynak bir projedir. Katkılarınızı bekliyoruz!
 
 1. Repository'yi fork edin
 2. Feature branch oluşturun (`git checkout -b feature/amazing-feature`)
@@ -556,3 +305,9 @@ Sorularınız için:
 5. Pull Request oluşturun
 
 Katkıda bulunmadan önce [CONTRIBUTING.md](CONTRIBUTING.md) dosyasını okuyun.
+
+---
+
+**AdminKit** - Türk geliştiriciler için optimize edilmiş, EasyAdmin'den üstün enterprise admin panel çözümü.
+
+**[📚 Dokümantasyona Başla](docs/)** | **[🚀 Hızlı Kurulum](docs/installation.md)** | **[💡 Örnekleri İncele](docs/examples/)**
