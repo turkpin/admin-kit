@@ -1,0 +1,45 @@
+# Dependencies
+/vendor/
+node_modules/
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Environment files
+.env
+.env.local
+.env.production
+
+# Cache & Logs
+/cache/
+/logs/
+*.log
+
+# Temporary files
+/tmp/
+/temp/
+
+# Build artifacts
+/build/
+/dist/
+/public/assets/manifest.json
+
+# Development files
+TODO.md
+NOTES.md
+.phpunit.result.cache
+
+# Database
+*.sqlite
+*.db
+
+# Uploads
+/public/uploads/*
+!/public/uploads/.gitkeep

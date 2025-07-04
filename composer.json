@@ -1,60 +1,49 @@
 {
     "name": "turkpin/admin-kit",
-    "description": "Modern enterprise admin panel solution with intelligent Docker setup and smart environment management",
+    "version": "1.0.6",
+    "description": "A comprehensive admin panel toolkit for PHP applications with translation system, Docker support, and complete CLI commands",
     "type": "library",
     "license": "MIT",
-    "version": "1.0.6",
     "keywords": [
         "admin",
         "panel",
-        "admin-panel", 
-        "crud",
-        "dashboard",
-        "backend",
+        "toolkit",
         "php",
-        "symfony",
-        "easyadmin",
+        "dashboard",
+        "crud",
+        "authentication",
+        "rbac",
+        "translation",
+        "i18n",
+        "multilingual",
         "docker",
-        "enterprise",
-        "modern",
-        "intelligent",
-        "zero-config"
+        "cli",
+        "migration"
     ],
     "authors": [
         {
-            "name": "Oktay Aydogan",
+            "name": "Oktay Aydoğan",
             "email": "oktay@turkpin.com",
-            "homepage": "https://github.com/oktayaydogan",
+            "homepage": "https://turkpin.com",
             "role": "Developer"
         }
     ],
-    "homepage": "https://github.com/oktayaydogan/admin-kit",
+    "homepage": "https://github.com/turkpin/admin-kit",
     "support": {
-        "issues": "https://github.com/oktayaydogan/admin-kit/issues",
-        "source": "https://github.com/oktayaydogan/admin-kit",
-        "docs": "https://github.com/oktayaydogan/admin-kit/tree/main/docs"
+        "issues": "https://github.com/turkpin/admin-kit/issues",
+        "source": "https://github.com/turkpin/admin-kit",
+        "docs": "https://github.com/turkpin/admin-kit/blob/main/README.md"
     },
     "require": {
-        "php": ">=8.1",
+        "php": ">=8.0",
         "ext-pdo": "*",
-        "ext-mbstring": "*",
-        "ext-intl": "*",
-        "doctrine/orm": "^2.15",
-        "smarty/smarty": "^4.3",
+        "ext-json": "*",
         "symfony/console": "^6.0|^7.0",
-        "symfony/yaml": "^6.0|^7.0",
-        "predis/predis": "^2.0",
-        "ratchet/pawl": "^0.4"
+        "smarty/smarty": "^4.0|^5.0"
     },
     "require-dev": {
-        "phpunit/phpunit": "^10.0",
-        "phpstan/phpstan": "^1.10",
-        "squizlabs/php_codesniffer": "^3.7"
-    },
-    "suggest": {
-        "ext-redis": "For Redis caching support",
-        "ext-gd": "For image manipulation support",
-        "ext-zip": "For export/import functionality"
+        "phpunit/phpunit": "^9.0|^10.0|^11.0",
+        "phpstan/phpstan": "^1.0"
     },
     "autoload": {
         "psr-4": {
@@ -73,26 +62,30 @@
         "bin/adminkit"
     ],
     "extra": {
-        "laravel": {
-            "providers": [
-                "AdminKit\\Providers\\AdminKitServiceProvider"
-            ]
+        "branch-alias": {
+            "dev-main": "1.0.x-dev"
         }
-    },
-    "scripts": {
-        "install-adminkit": [
-            "@php bin/adminkit install"
-        ],
-        "test": "phpunit",
-        "cs-check": "phpcs",
-        "cs-fix": "phpcbf",
-        "analyse": "phpstan analyse"
     },
     "config": {
         "sort-packages": true,
-        "optimize-autoloader": true,
-        "preferred-install": "dist"
+        "allow-plugins": {
+            "composer/package-versions-deprecated": true
+        }
     },
     "minimum-stability": "stable",
-    "prefer-stable": true
+    "prefer-stable": true,
+    "scripts": {
+        "test": "phpunit",
+        "test-coverage": "phpunit --coverage-html coverage",
+        "analyse": "phpstan analyse",
+        "check-style": "php-cs-fixer fix --dry-run --diff",
+        "fix-style": "php-cs-fixer fix",
+        "install-dev": "composer install --dev",
+        "post-install-cmd": [
+            "@php bin/adminkit version"
+        ],
+        "post-update-cmd": [
+            "@php bin/adminkit version"
+        ]
+    }
 }
