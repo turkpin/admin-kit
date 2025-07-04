@@ -28,6 +28,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - No more manual `env:copy` steps required
   - Docker-ready configuration in seconds
   - Migration-ready state immediately after install
+- **Global Package Positioning**: 
+  - Removed language-specific marketing to appeal to global audience
+  - Enhanced internationalization features for worldwide usage
+  - Professional enterprise-grade positioning
 
 ### Fixed
 - **Package Installation Flow**: Eliminated manual environment file copying
@@ -207,10 +211,10 @@ php vendor/bin/adminkit install  # Interactive Docker prompt
   - Global search across entities
 
 - **Internationalization**:
-  - Native Turkish language support
-  - 600+ translation keys in Turkish and English
-  - Complete localization system
-  - Turkish-first developer experience
+  - Multi-language support with complete i18n system
+  - Built-in translations for English and Turkish
+  - 600+ translation keys for comprehensive coverage
+  - Extensible localization system
 
 - **Developer Experience**:
   - Plugin architecture with hook/event system
@@ -240,7 +244,7 @@ php vendor/bin/adminkit install  # Interactive Docker prompt
 - 5-minute quick start tutorial
 - Comprehensive service documentation
 - Real-world examples and use cases
-- Turkish-focused developer resources
+- Multi-language developer resources
 - Production deployment instructions
 
 ### Security
@@ -276,4 +280,4 @@ php vendor/bin/adminkit install  # Interactive Docker prompt
 
 ---
 
-**AdminKit** - Modern Turkish-first enterprise admin panel solution
+**AdminKit** - Modern enterprise admin panel solution for global usage
