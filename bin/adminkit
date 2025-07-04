@@ -615,7 +615,8 @@ class InstallCommand extends Command
             'Dockerfile' => 'Dockerfile',
             'docker-compose.yml' => 'docker-compose.yml',
             'docker/nginx.conf' => 'docker/nginx.conf',
-            'docker/php.ini' => 'docker/php.ini'
+            'docker/php.ini' => 'docker/php.ini',
+            'docker/supervisord.conf' => 'docker/supervisord.conf'
         ];
         
         foreach ($filesToCopy as $source => $target) {
