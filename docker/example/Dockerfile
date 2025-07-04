@@ -35,7 +35,8 @@ RUN composer install --no-dev --optimize-autoloader
 # Create necessary directories
 RUN mkdir -p /var/www/html/storage/logs \
     && mkdir -p /var/www/html/storage/cache \
-    && mkdir -p /var/www/html/public/uploads
+    && mkdir -p /var/www/html/public/uploads \
+    && mkdir -p /var/log/supervisor
 
 # Set permissions
 RUN chown -R www-data:www-data /var/www/html \
