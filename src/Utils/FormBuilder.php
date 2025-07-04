@@ -328,8 +328,11 @@ class FormBuilder
         $this->registerFieldType('number', new \Turkpin\AdminKit\Fields\NumberField());
         $this->registerFieldType('textarea', new \Turkpin\AdminKit\Fields\TextareaField());
         $this->registerFieldType('date', new \Turkpin\AdminKit\Fields\DateField());
+        $this->registerFieldType('datetime', new \Turkpin\AdminKit\Fields\DateTimeField());
         $this->registerFieldType('choice', new \Turkpin\AdminKit\Fields\ChoiceField());
         $this->registerFieldType('image', new \Turkpin\AdminKit\Fields\ImageField());
+        $this->registerFieldType('file', new \Turkpin\AdminKit\Fields\FileField());
+        $this->registerFieldType('password', new \Turkpin\AdminKit\Fields\PasswordField());
     }
 
     /**
