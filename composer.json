@@ -28,11 +28,11 @@
             "role": "Developer"
         }
     ],
-    "homepage": "https://github.com/turkpin/admin-kit",
+    "homepage": "https://github.com/oktayaydogan/admin-kit",
     "support": {
-        "issues": "https://github.com/turkpin/admin-kit/issues",
-        "source": "https://github.com/turkpin/admin-kit",
-        "docs": "https://github.com/turkpin/admin-kit/tree/main/docs"
+        "issues": "https://github.com/oktayaydogan/admin-kit/issues",
+        "source": "https://github.com/oktayaydogan/admin-kit",
+        "docs": "https://github.com/oktayaydogan/admin-kit/tree/main/docs"
     },
     "require": {
         "php": ">=8.1",
