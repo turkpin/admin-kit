@@ -3,7 +3,7 @@
     "description": "Modern enterprise admin panel solution with intelligent Docker setup and smart environment management",
     "type": "library",
     "license": "MIT",
-    "version": "1.0.5",
+    "version": "1.0.6",
     "keywords": [
         "admin",
         "panel",
