@@ -7,6 +7,45 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.4] - 2025-01-07
+
+### Added
+- **Complete Environment Variable System**: Comprehensive .env support with 50+ configuration options
+- **Enhanced ConfigService**: Full environment variable integration with type conversion and validation
+- **Docker Infrastructure**: Complete containerization with production-ready setup
+  - Multi-stage Dockerfile (development/production/nginx)
+  - Docker Compose with 7 services (PHP, Nginx, MySQL, Redis, MailHog, Adminer, Queue Worker)
+  - Production-optimized configurations with security headers and OPcache
+- **Enhanced CLI Commands**:
+  - `env:copy` - Copy .env.example to .env with interactive setup
+  - `env:check` - Validate environment configuration and database connectivity
+  - `docker:up` - Start Docker containers with build and detach options
+  - `docker:down` - Stop containers with volume cleanup options
+- **Professional Development Environment**:
+  - Complete Laravel-style .env.example with all AdminKit features
+  - Automatic environment detection and type conversion
+  - Database connection validation and error reporting
+  - One-command Docker setup for instant development
+
+### Enhanced
+- **ConfigService Overhaul**: Complete rewrite with environment variable priority
+- **Configuration Management**: Dot notation support, validation, and auto-generation
+- **Database Integration**: Enhanced connection handling with timeout and SSL support
+- **CLI Installation Flow**: Improved guidance with environment setup steps
+- **Development Workflow**: Docker-first approach with hot reloading
+
+### Fixed
+- **Environment Variable Loading**: Proper parsing of .env files with quote handling
+- **Configuration Priority**: Environment variables now properly override defaults
+- **Type Conversion**: Automatic conversion of string env values to proper types (bool, int, float)
+- **Project Root Detection**: Improved logic for finding project root in various scenarios
+
+### Technical
+- **ConfigService**: Complete environment variable integration with fallbacks
+- **Docker Configuration**: Production-ready multi-stage builds with optimization
+- **CLI Commands**: Enhanced error handling and user feedback
+- **Environment Management**: Professional .env handling with validation
+
 ## [1.0.3] - 2025-01-07
 
 ### Added
