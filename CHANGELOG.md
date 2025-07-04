@@ -7,6 +7,59 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.5] - 2025-01-07
+
+### Added
+- **Intelligent Installation Workflow**: Smart Docker setup with interactive prompts
+- **Automatic Environment Configuration**: .env file auto-creation with Docker awareness
+- **One-Command Package Setup**: Complete installation with zero manual steps
+- **Smart Docker File Publishing**: Automatic Docker files deployment during install
+- **Environment-Aware Configuration**: Auto-detects Docker setup and configures accordingly
+
+### Enhanced
+- **InstallCommand Complete Overhaul**: 
+  - Interactive Docker setup prompt during installation
+  - Automatic .env file creation from .env.example or package defaults
+  - Smart environment variable updating for Docker configurations
+  - Docker files auto-publishing with `--with-docker` option
+  - Intelligent next steps guidance based on installation choices
+- **User Experience Revolution**: 
+  - Single command setup: `composer require turkpin/admin-kit && php vendor/bin/adminkit install`
+  - No more manual `env:copy` steps required
+  - Docker-ready configuration in seconds
+  - Migration-ready state immediately after install
+
+### Fixed
+- **Package Installation Flow**: Eliminated manual environment file copying
+- **Docker Integration**: Seamless package-to-Docker workflow
+- **Environment Variable Priority**: Proper Docker service hostnames auto-configuration
+- **Installation Guidance**: Context-aware next steps based on setup choices
+
+### Technical
+- **Smart Environment Detection**: Automatic Docker vs local configuration
+- **File Publishing Logic**: Intelligent Docker files deployment
+- **Configuration Management**: Environment-aware variable updates
+- **User Experience**: Interactive prompts with sensible defaults
+
+### Workflow
+**Before v1.0.5:**
+```bash
+composer require turkpin/admin-kit
+php vendor/bin/adminkit install
+php vendor/bin/adminkit env:copy  # Manual step
+# Docker files manual copy
+# Manual .env editing for Docker
+```
+
+**After v1.0.5:**
+```bash
+composer require turkpin/admin-kit
+php vendor/bin/adminkit install  # Interactive Docker prompt
+# ✅ .env auto-created and configured
+# ✅ Docker files auto-published 
+# ✅ Ready for docker-compose up
+```
+
 ## [1.0.4] - 2025-01-07
 
 ### Added

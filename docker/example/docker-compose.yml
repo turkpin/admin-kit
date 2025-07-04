@@ -1,0 +1,126 @@
+# AdminKit Package Docker Example
+# Use this when you install AdminKit via Composer package
+
+version: '3.8'
+
+services:
+  # =====================================================
+  # PHP Application with AdminKit Package
+  # =====================================================
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: my_adminkit_app
+    restart: unless-stopped
+    working_dir: /var/www/html
+    volumes:
+      - .:/var/www/html
+    environment:
+      - DB_HOST=mysql
+      - DB_DATABASE=adminkit
+      - DB_USERNAME=adminkit
+      - DB_PASSWORD=adminkit123
+      - REDIS_HOST=redis
+      - CACHE_DRIVER=redis
+      - QUEUE_CONNECTION=redis
+    depends_on:
+      - mysql
+      - redis
+    networks:
+      - adminkit
+
+  # =====================================================
+  # Web Server (Nginx)
+  # =====================================================
+  webserver:
+    image: nginx:alpine
+    container_name: my_adminkit_webserver
+    restart: unless-stopped
+    ports:
+      - "8000:80"
+    volumes:
+      - .:/var/www/html
+      - ./docker/nginx.conf:/etc/nginx/conf.d/default.conf
+    depends_on:
+      - app
+    networks:
+      - adminkit
+
+  # =====================================================
+  # Database (MySQL)
+  # =====================================================
+  mysql:
+    image: mysql:8.0
+    container_name: my_adminkit_mysql
+    restart: unless-stopped
+    ports:
+      - "3306:3306"
+    environment:
+      MYSQL_ROOT_PASSWORD: root123
+      MYSQL_DATABASE: adminkit
+      MYSQL_USER: adminkit
+      MYSQL_PASSWORD: adminkit123
+    volumes:
+      - mysql_data:/var/lib/mysql
+    networks:
+      - adminkit
+
+  # =====================================================
+  # Cache & Queue (Redis)
+  # =====================================================
+  redis:
+    image: redis:alpine
+    container_name: my_adminkit_redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - adminkit
+
+  # =====================================================
+  # Mail Testing (MailHog)
+  # =====================================================
+  mailhog:
+    image: mailhog/mailhog
+    container_name: my_adminkit_mailhog
+    restart: unless-stopped
+    ports:
+      - "1025:1025"  # SMTP port
+      - "8025:8025"  # Web UI port
+    networks:
+      - adminkit
+
+  # =====================================================
+  # Database Management (Adminer)
+  # =====================================================
+  adminer:
+    image: adminer
+    container_name: my_adminkit_adminer
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    environment:
+      ADMINER_DEFAULT_SERVER: mysql
+    depends_on:
+      - mysql
+    networks:
+      - adminkit
+
+# =====================================================
+# Volumes
+# =====================================================
+volumes:
+  mysql_data:
+    driver: local
+  redis_data:
+    driver: local
+
+# =====================================================
+# Networks
+# =====================================================
+networks:
+  adminkit:
+    driver: bridge

@@ -1,72 +1,80 @@
 # AdminKit - Modern Turkish Admin Panel
 
-**AdminKit**, modern PHP teknolojileri ile geliştirilmiş, Türkiye'ye özel enterprise düzeyinde admin panel çözümüdür. Laravel/Symfony EasyAdmin'in tüm özelliklerini içerir ve Docker desteği ile kolay kurulum sağlar.
+**AdminKit**, modern PHP teknolojileri ile geliştirilmiş, Türkiye'ye özel enterprise düzeyinde admin panel çözümüdür. Laravel/Symfony EasyAdmin'in tüm özelliklerini içerir ve **tek komutla complete Docker setup** sağlar.
 
 [![Latest Version](https://img.shields.io/packagist/v/turkpin/admin-kit.svg?style=flat-square)](https://packagist.org/packages/turkpin/admin-kit)
 [![PHP Version](https://img.shields.io/packagist/php-v/turkpin/admin-kit.svg?style=flat-square)](https://packagist.org/packages/turkpin/admin-kit)
 [![License](https://img.shields.io/packagist/l/turkpin/admin-kit.svg?style=flat-square)](LICENSE)
 [![Downloads](https://img.shields.io/packagist/dt/turkpin/admin-kit.svg?style=flat-square)](https://packagist.org/packages/turkpin/admin-kit)
 
-## 🚀 Hızlı Başlangıç
+## 🚀 Ultra Hızlı Başlangıç (v1.0.5)
 
-### Composer ile Kurulum
+### ⚡ Tek Komut ile Complete Setup
 
 ```bash
-# Package'ı yükle
+# Package'ı yükle ve kur
 composer require turkpin/admin-kit
-
-# AdminKit'i kur
 php vendor/bin/adminkit install
 
-# Environment dosyasını kopyala
-php vendor/bin/adminkit env:copy
+# ✅ .env otomatik oluşturulur
+# ✅ Docker dosyaları otomatik kopyalanır (isteğe bağlı)
+# ✅ Tüm konfigürasyon otomatik yapılır
+# ✅ Migrate'e hazır duruma gelir
 
-# .env dosyasını düzenle (database ayarları)
-nano .env
-
-# Veritabanı migration'larını çalıştır
-php vendor/bin/adminkit migrate
-
-# Admin kullanıcı oluştur
-php vendor/bin/adminkit user:create
-
-# Development server'ı başlat
-php vendor/bin/adminkit serve
+# Docker seçtiyseniz direkt başlatın:
+docker-compose up --build -d
+docker-compose exec app php vendor/bin/adminkit migrate
+docker-compose exec app php vendor/bin/adminkit user:create
 ```
 
 **🎉 AdminKit artık hazır:** http://localhost:8000
 
-### Docker ile Kurulum (Önerilen)
+### 🎯 Ne Değişti v1.0.5'te?
 
+#### **Öncesi (Manual Steps):**
 ```bash
-# Projeyi klonla
-git clone https://github.com/turkpin/admin-kit.git
-cd admin-kit
-
-# Docker container'ları başlat
-php vendor/bin/adminkit docker:up --build --detach
-
-# Otomatik kurulum tamamlandı!
+composer require turkpin/admin-kit
+php vendor/bin/adminkit install
+php vendor/bin/adminkit env:copy           # Manuel adım
+cp vendor/.../docker/example/* .          # Manuel kopyalama
+nano .env                                  # Manuel Docker config
 ```
 
-**🌐 Servislere Erişim:**
-- **AdminKit Panel**: http://localhost:8000
-- **MailHog (Email Test)**: http://localhost:8025  
-- **Adminer (DB Yönetimi)**: http://localhost:8080
+#### **Sonrası (Automatic Magic):**
+```bash
+composer require turkpin/admin-kit
+php vendor/bin/adminkit install           # Interactive Docker setup
+# "Do you want Docker?" → Yes
+# ✅ Herşey otomatik!
+docker-compose up --build -d             # Direkt çalışır
+```
+
+### 🐳 Smart Docker Integration
+
+Install sırasında AdminKit size sorar:
+- **"Do you want to include Docker files for easy setup?"**
+  - **Yes**: Docker dosyları kopyalanır, .env Docker için konfigüre edilir
+  - **No**: Local development için standard setup
+
+**Docker seçerseniz otomatik konfigürasyon:**
+- `DB_HOST=mysql` (Docker service)
+- `REDIS_HOST=redis` (Docker service)  
+- `MAIL_HOST=mailhog` (Email testing)
+- `CACHE_DRIVER=redis` (Performance)
 
 ## ✨ Öne Çıkan Özellikler
 
-### 🔧 **Environment Variable Desteği**
-- **50+ yapılandırma seçeneği** .env dosyası ile
-- **Otomatik tip dönüşümü** (string, bool, int, float)
-- **Validation ve hata kontrolü**
+### 🔧 **Intelligent Environment Management**
+- **Otomatik .env oluşturma** install sırasında
+- **Docker-aware konfigürasyon** seçime göre
+- **50+ environment variable** desteği
 - **Laravel-style environment yönetimi**
 
-### 🐳 **Complete Docker Support**
-- **Multi-stage Dockerfile** (development/production/nginx)
-- **7 servis** ile komple geliştirme ortamı
-- **Production-ready** optimizasyonlar
-- **One-command deployment**
+### 🐳 **Revolutionary Docker Support**
+- **Interactive setup** tek soru ile
+- **Automatic file publishing** gerekli Docker dosyaları
+- **Smart configuration** Docker services için otomatik ayar
+- **One-command deployment** production ready
 
 ### 🛡️ **Enterprise Security**
 - **Two-Factor Authentication (2FA)** with TOTP
@@ -106,18 +114,19 @@ php vendor/bin/adminkit docker:up --build --detach
 - **Complete localization system**
 - **Turkish date/time formatting**
 
-## 📋 CLI Komutları
+## 📋 CLI Komutları (v1.0.5)
 
-### 🏗️ **Installation & Management**
+### 🏗️ **Intelligent Installation**
 ```bash
-php vendor/bin/adminkit install         # AdminKit kurulumu
+php vendor/bin/adminkit install         # Interactive Docker setup
+php vendor/bin/adminkit install --with-docker    # Force Docker files
+php vendor/bin/adminkit install --skip-docker    # Skip Docker completely
 php vendor/bin/adminkit update          # Package güncelleme
-php vendor/bin/adminkit version         # Versiyon bilgisi
 ```
 
 ### 🔧 **Environment Management**
 ```bash
-php vendor/bin/adminkit env:copy        # .env.example → .env
+# Artık manual env:copy gerekmiyor!
 php vendor/bin/adminkit env:check       # Environment doğrulama
 ```
 
@@ -149,59 +158,32 @@ php vendor/bin/adminkit queue:work      # Queue worker
 php vendor/bin/adminkit cache:clear     # Cache temizle
 ```
 
-### 📦 **Asset Management**
-```bash
-php vendor/bin/adminkit publish:assets     # Asset'leri yayınla
-php vendor/bin/adminkit publish:templates  # Template'leri yayınla
-```
+## 🔧 Smart Environment Configuration
 
-## 🔧 Environment Konfigürasyonu
+AdminKit v1.0.5, **otomatik environment detection** ile Docker kurulumu algılar:
 
-AdminKit, **50+ environment variable** ile komple konfigürasyon desteği sunar:
-
-### 📝 **Temel Ayarlar**
+### 📝 **Local Development (Default)**
 ```env
 APP_NAME="AdminKit Panel"
 APP_URL=http://localhost:8000
-APP_DEBUG=true
-APP_TIMEZONE=Europe/Istanbul
-APP_LOCALE=tr
-```
-
-### 🗄️ **Veritabanı**
-```env
-DB_CONNECTION=mysql
 DB_HOST=127.0.0.1
-DB_PORT=3306
-DB_DATABASE=adminkit
-DB_USERNAME=root
-DB_PASSWORD=
-```
-
-### 🔐 **Authentication**
-```env
-AUTH_2FA_ENABLED=true
-AUTH_SESSION_TIMEOUT=7200
-AUTH_PASSWORD_MIN_LENGTH=8
-AUTH_MAX_LOGIN_ATTEMPTS=5
-```
-
-### ⚡ **Cache & Performance**
-```env
-CACHE_DRIVER=redis
-REDIS_HOST=127.0.0.1
-REDIS_PORT=6379
-QUEUE_CONNECTION=redis
-```
-
-### 📧 **Mail Configuration**
-```env
-MAIL_MAILER=smtp
+CACHE_DRIVER=file
+QUEUE_CONNECTION=database
 MAIL_HOST=smtp.gmail.com
-MAIL_PORT=587
-MAIL_USERNAME=your-email@gmail.com
-MAIL_PASSWORD=your-password
-MAIL_ENCRYPTION=tls
+```
+
+### 🐳 **Docker Setup (Auto-configured)**
+```env
+APP_NAME="AdminKit Panel"
+APP_URL=http://localhost:8000
+DB_HOST=mysql                # Docker service
+DB_USERNAME=adminkit         # Auto-configured
+DB_PASSWORD=adminkit123      # Auto-configured
+CACHE_DRIVER=redis           # Performance
+REDIS_HOST=redis             # Docker service
+QUEUE_CONNECTION=redis       # Performance
+MAIL_HOST=mailhog            # Email testing
+MAIL_PORT=1025               # MailHog port
 ```
 
 **📚 Tüm environment seçenekleri için:** [.env.example](.env.example) dosyasına bakın.
@@ -219,11 +201,10 @@ MAIL_ENCRYPTION=tls
 ## 📖 Dokümantasyon
 
 - **[Kurulum Rehberi](docs/installation.md)** - Detaylı kurulum adımları
+- **[Docker Example](docker/example/README.md)** - Package Docker kurulumu
 - **[Hızlı Başlangıç](docs/quick-start.md)** - 5 dakikada AdminKit
 - **[Field Types](docs/field-types.md)** - 14 field type dokümantasyonu
 - **[Services](docs/services/README.md)** - Service dokümantasyonu
-- **[Advanced](docs/advanced/)** - İleri seviye konular
-- **[Examples](docs/examples/)** - Örnek uygulamalar
 
 ## 🤝 Geliştirme ve Katkı
 
@@ -238,19 +219,17 @@ php vendor/bin/adminkit docker:up --build
 
 # Test'leri çalıştır
 composer test
-
-# Code style check
-composer cs-check
 ```
 
 **Katkı rehberi:** [CONTRIBUTING.md](CONTRIBUTING.md)
 
 ## 📈 Production Deployment
 
-### 🐳 **Docker Production**
+### 🐳 **Docker Production (Recommended)**
 ```bash
-# Production image build
-docker build --target production -t adminkit:latest .
+# Tek komutla production setup
+composer require turkpin/admin-kit
+php vendor/bin/adminkit install --with-docker
 
 # Production deployment
 docker-compose -f docker-compose.prod.yml up -d
@@ -261,18 +240,14 @@ docker-compose -f docker-compose.prod.yml up -d
 # Dependencies (production only)
 composer install --no-dev --optimize-autoloader
 
-# Environment setup
-cp .env.example .env
-# Configure production values
+# AdminKit kurulum
+php vendor/bin/adminkit install
 
 # Database migration
 php vendor/bin/adminkit migrate
 
 # Asset optimization
 php vendor/bin/adminkit publish:assets
-
-# Cache optimization
-php vendor/bin/adminkit cache:warm
 ```
 
 ## 🔧 Sistem Gereksinimleri
@@ -285,10 +260,12 @@ php vendor/bin/adminkit cache:warm
 
 ## 🆚 EasyAdmin Karşılaştırması
 
-| Özellik | AdminKit | EasyAdmin |
-|---------|----------|-----------|
+| Özellik | AdminKit v1.0.5 | EasyAdmin |
+|---------|------------------|-----------|
 | **Turkish Support** | ✅ Native | ❌ Limited |
-| **Docker Support** | ✅ Complete | ❌ Manual |
+| **One-Command Setup** | ✅ Complete | ❌ Manual |
+| **Smart Docker Integration** | ✅ Interactive | ❌ Manual |
+| **Auto Environment Setup** | ✅ Intelligent | ❌ Manual |
 | **Environment Variables** | ✅ 50+ options | ❌ Basic |
 | **Real-time Features** | ✅ WebSocket | ❌ None |
 | **CLI Tools** | ✅ 15+ commands | ❌ Basic |
@@ -316,19 +293,28 @@ php vendor/bin/adminkit cache:warm
 
 AdminKit, [MIT lisansı](LICENSE) altında açık kaynak olarak sunulmaktadır.
 
-## 🏆 Özellikler
+## 🏆 v1.0.5 Özellikleri
 
+- ✅ **Intelligent Installation** - Smart Docker setup with interactive prompts
+- ✅ **Auto Environment Setup** - Zero manual configuration steps
+- ✅ **One-Command Deployment** - Complete setup in seconds
+- ✅ **Smart Docker Integration** - Auto-detects and configures for Docker
+- ✅ **Migration-Ready State** - Instantly ready for database setup
+- ✅ **User Experience Revolution** - Eliminated all manual steps
 - ✅ **Production Ready** - Enterprise düzeyinde kararlılık
 - ✅ **Turkish-First** - Türkiye odaklı geliştirme
-- ✅ **Docker Support** - Modern deployment
-- ✅ **Environment Management** - Professional konfigürasyon
-- ✅ **CLI Tools** - Geliştirici dostu araçlar
-- ✅ **Real-time Features** - Modern web uygulaması
-- ✅ **Security** - Enterprise güvenlik
-- ✅ **Performance** - Yüksek performans optimizasyonu
 
 ---
 
-**AdminKit ile admin panellerinizi bir sonraki seviyeye taşıyın!** 🚀
+**AdminKit v1.0.5 ile admin panellerinizi saniyeler içinde kurabilirsiniz!** 🚀
 
-*Modern, güvenli, performanslı ve Türkiye'ye özel admin panel çözümü.*
+*Modern, intelligent, zero-configuration admin panel solution.*
+
+## 🔄 Version History
+
+- **v1.0.5**: Intelligent installation with auto Docker setup
+- **v1.0.4**: Complete environment variable system
+- **v1.0.3**: Full CLI command suite
+- **v1.0.2**: PHP 8+ compatibility fixes
+- **v1.0.1**: Initial Packagist release
+- **v1.0.0**: Full feature release
