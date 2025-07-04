@@ -1,7 +1,7 @@
 {
     "name": "turkpin/admin-kit",
-    "version": "1.0.6",
-    "description": "A comprehensive admin panel toolkit for PHP applications with translation system, Docker support, and complete CLI commands",
+    "version": "1.0.7",
+    "description": "A comprehensive admin panel toolkit for PHP applications with advanced CLI tools, multi-language support, enhanced security, and modern UI components",
     "type": "library",
     "license": "MIT",
     "keywords": [
@@ -20,7 +20,12 @@
         "cli",
         "migration",
         "php8",
-        "php83"
+        "php83",
+        "backup",
+        "security",
+        "api",
+        "vue",
+        "performance"
     ],
     "authors": [
         {
@@ -41,8 +46,10 @@
         "ext-pdo": "*",
         "ext-json": "*",
         "ext-mbstring": "*",
+        "ext-zip": "*",
         "symfony/console": "^6.0|^7.0",
-        "smarty/smarty": "^4.0|^5.0"
+        "smarty/smarty": "^4.0|^5.0",
+        "predis/predis": "^2.0"
     },
     "require-dev": {
         "phpunit/phpunit": "^9.0|^10.0|^11.0",
