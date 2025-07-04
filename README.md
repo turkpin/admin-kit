@@ -6,11 +6,12 @@ AdminKit, PHP tabanlı modern ve kurumsal admin panel çözümüdür. Symfony Ea
 
 AdminKit, EasyAdmin'in tüm özelliklerini içerirken aşağıdaki alanlarda üstünlük sağlar:
 
-- **Türkçe Desteği**: Tam Türkçe dil desteği ve lokalizasyon
+- **Türkçe Desteği**: Tam Türkçe dil desteği ve lokalizasyon (600+ çeviri)
 - **Kurumsal Güvenlik**: İki faktörlü kimlik doğrulama (2FA) ve gelişmiş denetim sistemi
 - **Modern Teknoloji**: PHP 8+ ve Tailwind CSS ile modern kod yapısı
 - **Performans**: Gelişmiş önbellekleme ve performans izleme araçları
 - **Esneklik**: Plugin mimarisi ve hook sistemi ile genişletilebilirlik
+- **Gerçek Zamanlı**: WebSocket desteği ile canlı güncellemeler
 
 ## Özellikler
 
@@ -18,8 +19,9 @@ AdminKit, EasyAdmin'in tüm özelliklerini içerirken aşağıdaki alanlarda üs
 - CRUD operasyonları ve entity yönetimi
 - 14 farklı alan tipi (text, email, number, date, file, image vb.)
 - Rol tabanlı erişim kontrolü (RBAC)
-- Çoklu dil desteği (Türkçe/İngilizce)
+- Çoklu dil desteği (Türkçe/İngilizce) - 600+ çeviri
 - Responsive tasarım (4 farklı tema)
+- Breadcrumb navigasyon sistemi
 
 ### Enterprise Özellikler
 - İki faktörlü kimlik doğrulama (TOTP, backup kodları)
@@ -31,6 +33,12 @@ AdminKit, EasyAdmin'in tüm özelliklerini içerirken aşağıdaki alanlarda üs
 - Toplu işlemler (batch operations)
 - Veri dışa/içe aktarma (CSV, Excel, JSON, XML, PDF)
 - Denetim günlüğü (audit log) ve değişiklik takibi
+
+### Gelişmiş UI/UX Özellikleri
+- **WebSocket & Real-time**: Canlı bildirimler, kullanıcı varlığı takibi
+- **Asset Management**: Webpack/Vite entegrasyonu, minifikasyon, versiyonlama
+- **Dynamic Forms**: Koşullu alanlar, çok adımlı formlar, otomatik kaydet
+- **Breadcrumb Navigation**: Otomatik breadcrumb oluşturma ve hiyerarşik navigasyon
 
 ## Sistem Gereksinimleri
 
@@ -72,6 +80,10 @@ $adminKit = new AdminKit([
     'cache' => [
         'enabled' => true,
         'driver' => 'file'
+    ],
+    'websocket' => [
+        'enabled' => true,
+        'port' => 8080
     ]
 ]);
 
@@ -230,6 +242,103 @@ $systemHealth = $performance->getSystemHealth();
 $performance->recordMetric('user_login', 1, ['ip' => $userIp]);
 ```
 
+### 6. Dynamic Forms ve Conditional Fields
+
+```php
+// Dinamik form oluştur
+$dynamicForm = $adminKit->getDynamicFormService();
+
+$dynamicForm->registerForm('user_registration', [
+    'title' => 'Kullanıcı Kaydı',
+    'description' => 'Yeni kullanıcı kayıt formu',
+    'steps' => [
+        [
+            'title' => 'Kişisel Bilgiler',
+            'description' => 'Temel bilgilerinizi girin',
+            'fields' => [
+                'name' => ['type' => 'text', 'label' => 'Ad Soyad', 'required' => true],
+                'email' => ['type' => 'email', 'label' => 'E-posta', 'required' => true],
+                'user_type' => [
+                    'type' => 'choice',
+                    'label' => 'Kullanıcı Tipi',
+                    'choices' => ['individual' => 'Bireysel', 'corporate' => 'Kurumsal']
+                ]
+            ]
+        ],
+        [
+            'title' => 'Ek Bilgiler',
+            'fields' => [
+                'company_name' => [
+                    'type' => 'text',
+                    'label' => 'Şirket Adı',
+                    'required' => true
+                ],
+                'tax_number' => ['type' => 'text', 'label' => 'Vergi Numarası']
+            ]
+        ]
+    ],
+    'ajax_validation' => true,
+    'auto_save' => true
+]);
+
+// Koşullu alan mantığı ekle
+$dynamicForm->addCondition('user_registration', 'company_name', [
+    'dependsOn' => 'user_type',
+    'operator' => 'equals',
+    'value' => 'corporate',
+    'action' => 'show',
+    'animation' => 'fade'
+]);
+```
+
+### 7. Real-time Features ve WebSocket
+
+```php
+// WebSocket sunucusunu başlat
+$webSocket = $adminKit->getWebSocketService();
+
+// Gerçek zamanlı bildirim gönder
+$webSocket->sendToUser(123, [
+    'title' => 'Yeni Mesaj',
+    'message' => 'Size yeni bir mesaj geldi',
+    'type' => 'info'
+], 'notification');
+
+// Tüm kullanıcılara yayın yap
+$webSocket->broadcast('system', [
+    'title' => 'Sistem Duyurusu',
+    'message' => 'Sistem bakımı 30 dakika içinde başlayacak'
+]);
+
+// Kullanıcı varlığını takip et
+$webSocket->updateUserPresence(123, 'online');
+```
+
+### 8. Asset Management
+
+```php
+// Asset yöneticisini al
+$assetService = $adminKit->getAssetService();
+
+// Yeni asset kaydet
+$assetService->registerAsset('custom-dashboard.css', [
+    'type' => 'css',
+    'path' => 'css/custom-dashboard.css',
+    'dependencies' => ['admin-core.css'],
+    'priority' => 85,
+    'critical' => true
+]);
+
+// Asset'leri derle
+$results = $assetService->compile();
+
+// CSS asset'lerini render et
+echo $assetService->renderCss();
+
+// JavaScript asset'lerini render et
+echo $assetService->renderJs();
+```
+
 ## Konfigürasyon
 
 ### Temel Konfigürasyon
@@ -269,6 +378,24 @@ $config = [
             'port' => 6379,
             'database' => 0
         ]
+    ],
+    
+    'websocket' => [
+        'enabled' => true,
+        'port' => 8080,
+        'host' => '0.0.0.0',
+        'max_connections' => 1000,
+        'auth_required' => true,
+        'fallback_polling' => true
+    ],
+    
+    'assets' => [
+        'enabled' => true,
+        'versioning' => true,
+        'minification' => true,
+        'compression' => true,
+        'cdn_enabled' => false,
+        'cdn_url' => ''
     ],
     
     'uploads' => [
@@ -342,6 +469,12 @@ php vendor/bin/adminkit cache:clear
 composer install --no-dev --optimize-autoloader
 php vendor/bin/adminkit cache:warm
 php vendor/bin/adminkit assets:build
+
+# WebSocket sunucusunu başlat
+php vendor/bin/adminkit websocket:start
+
+# Queue worker'ını başlat
+php vendor/bin/adminkit queue:work
 ```
 
 ## API Kullanımı
@@ -369,6 +502,38 @@ GET /api/users?search=ahmet
 
 # Filtreleme
 GET /api/users?filter[is_active]=true
+
+# Server-Sent Events endpoint
+GET /api/sse-messages
+
+# WebSocket bağlantı bilgileri
+GET /api/websocket/info
+```
+
+## Internationalization (i18n)
+
+AdminKit 600+ çeviri anahtarı ile tam Türkçe ve İngilizce desteği sunar:
+
+```php
+// Dil dosyasından çeviri al
+$localization = $adminKit->getLocalizationService();
+echo $localization->get('user_created'); // "Kullanıcı başarıyla oluşturuldu."
+
+// Parametreli çeviri
+echo $localization->get('welcome_message', ['name' => 'Ahmet']); // "Hoş geldiniz, Ahmet!"
+
+// Dil değiştir
+$localization->setLocale('en'); // İngilizce'ye geç
+```
+
+### Yeni Çeviri Ekleme
+
+```php
+// src/Translations/tr.php
+return [
+    'my_custom_key' => 'Özel mesajım',
+    'parameterized_message' => 'Merhaba :name, hoş geldiniz!'
+];
 ```
 
 ## Lisans
