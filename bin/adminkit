@@ -74,6 +74,27 @@ function getDatabase(): ?PDO
 }
 
 /**
+ * Enhanced Environment loader
+ */
+function loadEnvironment(): array
+{
+    $envFile = getcwd() . '/.env';
+    $env = [];
+    
+    if (file_exists($envFile)) {
+        $lines = file($envFile, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
+        foreach ($lines as $line) {
+            if (strpos($line, '=') !== false && !str_starts_with($line, '#')) {
+                list($key, $value) = explode('=', $line, 2);
+                $env[trim($key)] = trim($value, '"\'');
+            }
+        }
+    }
+    
+    return $env;
+}
+
+/**
  * AdminKit Install Command
  */
 class InstallCommand extends Command
@@ -128,10 +149,11 @@ class InstallCommand extends Command
             $io->success('AdminKit installation completed successfully!');
             $io->text([
                 'Next steps:',
-                '1. Configure your database in config/adminkit.php',
-                '2. Run migrations: php vendor/bin/adminkit migrate',
-                '3. Create admin user: php vendor/bin/adminkit user:create',
-                '4. Start development server: php vendor/bin/adminkit serve'
+                '1. Copy environment file: php vendor/bin/adminkit env:copy',
+                '2. Configure your database in .env file',
+                '3. Run migrations: php vendor/bin/adminkit migrate',
+                '4. Create admin user: php vendor/bin/adminkit user:create',
+                '5. Start development server: php vendor/bin/adminkit serve'
             ]);
         }
 
@@ -251,66 +273,279 @@ class InstallCommand extends Command
 <?php
 
 return [
-    'app_name' => 'AdminKit Panel',
-    'app_url' => 'http://localhost:8000',
-    'timezone' => 'Europe/Istanbul',
-    'locale' => 'tr',
-    'debug' => true,
+    'app_name' => env('APP_NAME', 'AdminKit Panel'),
+    'app_url' => env('APP_URL', 'http://localhost:8000'),
+    'timezone' => env('APP_TIMEZONE', 'Europe/Istanbul'),
+    'locale' => env('APP_LOCALE', 'tr'),
+    'debug' => env('APP_DEBUG', true),
     
     'database' => [
-        'driver' => 'mysql',
-        'host' => 'localhost',
-        'port' => 3306,
-        'database' => 'adminkit_db',
-        'username' => 'root',
-        'password' => '',
+        'driver' => env('DB_CONNECTION', 'mysql'),
+        'host' => env('DB_HOST', 'localhost'),
+        'port' => env('DB_PORT', 3306),
+        'database' => env('DB_DATABASE', 'adminkit'),
+        'username' => env('DB_USERNAME', 'root'),
+        'password' => env('DB_PASSWORD', ''),
         'charset' => 'utf8mb4',
         'collation' => 'utf8mb4_unicode_ci',
     ],
     
     'auth' => [
         'enabled' => true,
-        'session_timeout' => 7200,
-        '2fa_enabled' => true,
-        'password_min_length' => 8,
-        'max_login_attempts' => 5,
-        'lockout_duration' => 900
+        'session_timeout' => env('AUTH_SESSION_TIMEOUT', 7200),
+        '2fa_enabled' => env('AUTH_2FA_ENABLED', true),
+        'password_min_length' => env('AUTH_PASSWORD_MIN_LENGTH', 8),
+        'max_login_attempts' => env('AUTH_MAX_LOGIN_ATTEMPTS', 5),
+        'lockout_duration' => env('AUTH_LOCKOUT_DURATION', 900)
     ],
     
     'cache' => [
         'enabled' => true,
-        'driver' => 'file',
-        'ttl' => 3600,
-        'prefix' => 'adminkit_'
+        'driver' => env('CACHE_DRIVER', 'file'),
+        'ttl' => env('CACHE_TTL', 3600),
+        'prefix' => env('CACHE_PREFIX', 'adminkit_')
     ],
     
     'queue' => [
         'enabled' => true,
-        'driver' => 'database',
-        'table' => 'jobs',
-        'max_attempts' => 3,
-        'retry_delay' => 60
+        'driver' => env('QUEUE_CONNECTION', 'database'),
+        'table' => env('QUEUE_TABLE', 'jobs'),
+        'max_attempts' => env('QUEUE_MAX_ATTEMPTS', 3),
+        'retry_delay' => env('QUEUE_RETRY_DELAY', 60)
     ],
     
     'websocket' => [
-        'enabled' => false,
-        'port' => 8080,
-        'host' => '0.0.0.0'
+        'enabled' => env('WEBSOCKET_ENABLED', false),
+        'port' => env('WEBSOCKET_PORT', 8080),
+        'host' => env('WEBSOCKET_HOST', '0.0.0.0')
     ],
     
     'performance' => [
-        'enabled' => true,
-        'slow_query_threshold' => 1000,
-        'memory_limit_warning' => 80
+        'enabled' => env('PERFORMANCE_ENABLED', true),
+        'slow_query_threshold' => env('PERFORMANCE_SLOW_QUERY_THRESHOLD', 1000),
+        'memory_limit_warning' => env('PERFORMANCE_MEMORY_LIMIT_WARNING', 80)
     ],
     
     'uploads' => [
-        'path' => 'public/uploads',
-        'max_size' => '10MB',
-        'allowed_types' => ['jpg', 'jpeg', 'png', 'gif', 'pdf', 'docx', 'xlsx']
+        'path' => env('UPLOAD_PATH', 'public/uploads'),
+        'max_size' => env('UPLOAD_MAX_SIZE', '10M'),
+        'allowed_types' => explode(',', env('UPLOAD_ALLOWED_TYPES', 'jpg,jpeg,png,gif,pdf,docx,xlsx'))
     ]
 ];
+
+// Helper function for environment variables
+function env($key, $default = null) {
+    static $env = null;
+    if ($env === null) {
+        $env = [];
+        $envFile = __DIR__ . '/../.env';
+        if (file_exists($envFile)) {
+            $lines = file($envFile, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
+            foreach ($lines as $line) {
+                if (strpos($line, '=') !== false && !str_starts_with($line, '#')) {
+                    list($k, $v) = explode('=', $line, 2);
+                    $env[trim($k)] = trim($v, '"\'');
+                }
+            }
+        }
+    }
+    
+    return $env[$key] ?? $_ENV[$key] ?? $default;
+}
 PHP;
+    }
+}
+
+/**
+ * Environment Copy Command
+ */
+class EnvCopyCommand extends Command
+{
+    protected function configure(): void
+    {
+        $this
+            ->setName('env:copy')
+            ->setDescription('Copy .env.example to .env')
+            ->addOption('force', 'f', InputOption::VALUE_NONE, 'Force overwrite existing .env file');
+    }
+
+    protected function execute(InputInterface $input, OutputInterface $output): int
+    {
+        $io = new SymfonyStyle($input, $output);
+        
+        $projectRoot = getcwd();
+        $envExample = $projectRoot . '/.env.example';
+        $envFile = $projectRoot . '/.env';
+        
+        if (!file_exists($envExample)) {
+            // Try to copy from package
+            $packageRoot = dirname(__DIR__);
+            $packageEnvExample = $packageRoot . '/.env.example';
+            
+            if (file_exists($packageEnvExample)) {
+                copy($packageEnvExample, $envExample);
+                $io->text('Copied .env.example from AdminKit package');
+            } else {
+                $io->error('.env.example file not found');
+                return Command::FAILURE;
+            }
+        }
+        
+        if (file_exists($envFile) && !$input->getOption('force')) {
+            $io->warning('.env file already exists. Use --force to overwrite.');
+            return Command::FAILURE;
+        }
+        
+        copy($envExample, $envFile);
+        $io->success('.env file created successfully!');
+        $io->text('Please configure your environment variables in .env file');
+        
+        return Command::SUCCESS;
+    }
+}
+
+/**
+ * Environment Check Command
+ */
+class EnvCheckCommand extends Command
+{
+    protected function configure(): void
+    {
+        $this
+            ->setName('env:check')
+            ->setDescription('Check environment configuration');
+    }
+
+    protected function execute(InputInterface $input, OutputInterface $output): int
+    {
+        $io = new SymfonyStyle($input, $output);
+        $io->title('Environment Configuration Check');
+        
+        $env = loadEnvironment();
+        $issues = [];
+        
+        // Check required variables
+        $required = ['APP_NAME', 'APP_URL', 'DB_HOST', 'DB_DATABASE', 'DB_USERNAME'];
+        foreach ($required as $key) {
+            if (!isset($env[$key]) || empty($env[$key])) {
+                $issues[] = "Missing required variable: {$key}";
+            }
+        }
+        
+        // Check database connection
+        if (isset($env['DB_HOST'])) {
+            try {
+                $pdo = getDatabase();
+                if ($pdo) {
+                    $io->text('✅ Database connection: OK');
+                } else {
+                    $issues[] = 'Database connection failed';
+                }
+            } catch (Exception $e) {
+                $issues[] = 'Database connection error: ' . $e->getMessage();
+            }
+        }
+        
+        if (empty($issues)) {
+            $io->success('Environment configuration is valid!');
+            return Command::SUCCESS;
+        } else {
+            $io->error('Environment configuration issues found:');
+            foreach ($issues as $issue) {
+                $io->text('❌ ' . $issue);
+            }
+            return Command::FAILURE;
+        }
+    }
+}
+
+/**
+ * Docker Up Command
+ */
+class DockerUpCommand extends Command
+{
+    protected function configure(): void
+    {
+        $this
+            ->setName('docker:up')
+            ->setDescription('Start Docker containers')
+            ->addOption('build', 'b', InputOption::VALUE_NONE, 'Build images before starting')
+            ->addOption('detach', 'd', InputOption::VALUE_NONE, 'Run in detached mode');
+    }
+
+    protected function execute(InputInterface $input, OutputInterface $output): int
+    {
+        $io = new SymfonyStyle($input, $output);
+        
+        if (!file_exists('docker-compose.yml')) {
+            $io->error('docker-compose.yml not found. Please run this command from AdminKit root directory.');
+            return Command::FAILURE;
+        }
+        
+        $command = 'docker-compose up';
+        
+        if ($input->getOption('build')) {
+            $command .= ' --build';
+        }
+        
+        if ($input->getOption('detach')) {
+            $command .= ' -d';
+        }
+        
+        $io->text("Starting Docker containers...");
+        $io->text("Command: {$command}");
+        
+        passthru($command, $exitCode);
+        
+        if ($exitCode === 0) {
+            $io->success('Docker containers started successfully!');
+            $io->text([
+                'Services available:',
+                '🌐 AdminKit: http://localhost:8000',
+                '📧 MailHog: http://localhost:8025',
+                '🗄️ Adminer: http://localhost:8080',
+            ]);
+        } else {
+            $io->error('Failed to start Docker containers');
+        }
+        
+        return $exitCode;
+    }
+}
+
+/**
+ * Docker Down Command
+ */
+class DockerDownCommand extends Command
+{
+    protected function configure(): void
+    {
+        $this
+            ->setName('docker:down')
+            ->setDescription('Stop Docker containers')
+            ->addOption('volumes', 'v', InputOption::VALUE_NONE, 'Remove volumes');
+    }
+
+    protected function execute(InputInterface $input, OutputInterface $output): int
+    {
+        $io = new SymfonyStyle($input, $output);
+        
+        $command = 'docker-compose down';
+        
+        if ($input->getOption('volumes')) {
+            $command .= ' -v';
+        }
+        
+        $io->text("Stopping Docker containers...");
+        passthru($command, $exitCode);
+        
+        if ($exitCode === 0) {
+            $io->success('Docker containers stopped successfully!');
+        } else {
+            $io->error('Failed to stop Docker containers');
+        }
+        
+        return $exitCode;
     }
 }
 
@@ -706,7 +941,7 @@ class VersionCommand extends Command
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
         $io = new SymfonyStyle($input, $output);
-        $version = function_exists('adminkit_version') ? adminkit_version() : '1.0.3';
+        $version = function_exists('adminkit_version') ? adminkit_version() : '1.0.4';
         
         $io->title('AdminKit Version Information');
         $io->text("AdminKit version: {$version}");
@@ -718,12 +953,20 @@ class VersionCommand extends Command
 }
 
 // Create and run application
-$application = new Application('AdminKit', '1.0.3');
+$application = new Application('AdminKit', '1.0.4');
 
 // Installation & Management
 $application->add(new InstallCommand());
 $application->add(new UpdateCommand());
 $application->add(new VersionCommand());
+
+// Environment Management
+$application->add(new EnvCopyCommand());
+$application->add(new EnvCheckCommand());
+
+// Docker Management
+$application->add(new DockerUpCommand());
+$application->add(new DockerDownCommand());
 
 // User Management
 $application->add(new UserCreateCommand());
