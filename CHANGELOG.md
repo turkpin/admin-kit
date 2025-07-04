@@ -7,6 +7,49 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.3] - 2025-01-07
+
+### Added
+- **Complete CLI Command Suite**: Added all missing CLI commands promised in documentation
+- **User Management Commands**:
+  - `user:create` - Create admin users with interactive prompts
+  - Support for name, email, password arguments or interactive input
+  - Automatic password generation if not provided
+- **Database Commands**:
+  - `migrate` - Run database migrations with progress tracking
+  - Migration table management and execution tracking
+  - SQL file processing from migrations directory
+- **Development Commands**:
+  - `serve` - Start PHP development server with configurable host/port
+  - Built-in public directory detection and validation
+- **Queue Management**:
+  - `queue:work` - Queue worker with timeout and queue selection
+  - Basic job processing simulation and logging
+- **Cache Management**:
+  - `cache:clear` - Clear cache files with recursive directory cleaning
+- **Enhanced Installation**:
+  - Improved installation flow with uploads directory creation
+  - Better next steps guidance after installation
+
+### Enhanced
+- **Database Integration**: Added PDO-based database connection helper
+- **Interactive CLI**: Added interactive prompts for user-friendly experience
+- **Error Handling**: Comprehensive error messages and validation
+- **Progress Feedback**: Real-time feedback for all operations
+- **Configuration Validation**: Better config file and directory validation
+
+### Fixed
+- **CLI Command Coverage**: Fixed missing commands that were documented but not implemented
+- **User Experience**: Resolved "command not found" errors for advertised features
+- **Database Connectivity**: Proper database connection with error handling
+- **Migration System**: Working migration execution and tracking
+
+### Technical
+- Updated CLI application version to 1.0.3
+- Added database helper function with PDO integration
+- Improved command class structure and error handling
+- Enhanced user input validation and sanitization
+
 ## [1.0.2] - 2025-01-07
 
 ### Fixed
