@@ -45,12 +45,10 @@ use Symfony\Component\Console\Style\SymfonyStyle;
  */
 class InstallCommand extends Command
 {
-    protected static $defaultName = 'install';
-    protected static $defaultDescription = 'Install AdminKit in your project';
-
     protected function configure(): void
     {
         $this
+            ->setName('install')
             ->setDescription('Install AdminKit assets, templates, and configuration')
             ->addOption('quiet', 'q', InputOption::VALUE_NONE, 'Suppress output')
             ->addOption('force', 'f', InputOption::VALUE_NONE, 'Force overwrite existing files')
@@ -98,8 +96,8 @@ class InstallCommand extends Command
             $io->text([
                 'Next steps:',
                 '1. Configure your database in config/adminkit.php',
-                '2. Run migrations: php bin/adminkit migrate',
-                '3. Create admin user: php bin/adminkit user:create',
+                '2. Run migrations: php vendor/bin/adminkit migrate',
+                '3. Create admin user: php vendor/bin/adminkit user:create',
                 '4. Start your application!'
             ]);
         }
@@ -287,12 +285,10 @@ PHP;
  */
 class UpdateCommand extends Command
 {
-    protected static $defaultName = 'update';
-    protected static $defaultDescription = 'Update AdminKit assets and templates';
-
     protected function configure(): void
     {
         $this
+            ->setName('update')
             ->setDescription('Update AdminKit package files')
             ->addOption('quiet', 'q', InputOption::VALUE_NONE, 'Suppress output');
     }
@@ -320,8 +316,12 @@ class UpdateCommand extends Command
  */
 class PublishAssetsCommand extends Command
 {
-    protected static $defaultName = 'publish:assets';
-    protected static $defaultDescription = 'Publish AdminKit assets';
+    protected function configure(): void
+    {
+        $this
+            ->setName('publish:assets')
+            ->setDescription('Publish AdminKit assets');
+    }
 
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
@@ -336,20 +336,24 @@ class PublishAssetsCommand extends Command
  */
 class VersionCommand extends Command
 {
-    protected static $defaultName = 'version';
-    protected static $defaultDescription = 'Show AdminKit version';
+    protected function configure(): void
+    {
+        $this
+            ->setName('version')
+            ->setDescription('Show AdminKit version');
+    }
 
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
         $io = new SymfonyStyle($input, $output);
-        $version = function_exists('adminkit_version') ? adminkit_version() : '1.0.0';
+        $version = function_exists('adminkit_version') ? adminkit_version() : '1.0.2';
         $io->text("AdminKit version: {$version}");
         return Command::SUCCESS;
     }
 }
 
 // Create and run application
-$application = new Application('AdminKit', '1.0.0');
+$application = new Application('AdminKit', '1.0.2');
 $application->add(new InstallCommand());
 $application->add(new UpdateCommand());
 $application->add(new PublishAssetsCommand());

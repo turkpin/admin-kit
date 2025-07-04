@@ -7,6 +7,34 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.2] - 2025-01-07
+
+### Fixed
+- **PHP 8+ Compatibility**: Fixed nullable parameter deprecation warning in `adminkit_translate()` function
+- **Symfony Console Commands**: Fixed command name configuration for Symfony Console 7.x compatibility
+- **CLI Tools**: Resolved "empty command name" error in bin/adminkit executable
+- **Type Declarations**: Updated helper functions with proper PHP 8+ nullable and mixed type declarations
+
+### Changed
+- Updated `adminkit_translate()` function signature to use `?string $locale = null`
+- Updated `adminkit_env()` function to use `mixed` type for default parameter
+- Modernized Symfony Console command configuration using `setName()` in `configure()` method
+- Version bumped to 1.0.2 in CLI application
+
+### Technical
+- Improved PHP 8.1+ compatibility across all helper functions
+- Fixed Symfony Console 7.x deprecation warnings
+- Enhanced CLI command structure for better maintainability
+
+## [1.0.1] - 2025-01-07
+
+### Added
+- Initial Packagist publication
+- Automatic package discovery and installation
+
+### Fixed
+- Minor package metadata improvements
+
 ## [1.0.0] - 2025-01-07
 
 ### Added

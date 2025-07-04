@@ -79,7 +79,7 @@ if (!function_exists('adminkit_translate')) {
     /**
      * Translate text using AdminKit translations
      */
-    function adminkit_translate(string $key, array $parameters = [], string $locale = null): string
+    function adminkit_translate(string $key, array $parameters = [], ?string $locale = null): string
     {
         static $translations = [];
         
@@ -109,7 +109,7 @@ if (!function_exists('adminkit_env')) {
     /**
      * Get environment variable with AdminKit prefix
      */
-    function adminkit_env(string $key, $default = null)
+    function adminkit_env(string $key, mixed $default = null): mixed
     {
         return $_ENV['ADMINKIT_' . $key] ?? $_ENV[$key] ?? $default;
     }
