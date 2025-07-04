@@ -13,6 +13,131 @@ AdminKit, EasyAdmin'in tüm özelliklerini içerirken aşağıdaki alanlarda üs
 - **Esneklik**: Plugin mimarisi ve hook sistemi ile genişletilebilirlik
 - **Gerçek Zamanlı**: WebSocket desteği ile canlı güncellemeler
 
+## 📦 Hızlı Kurulum
+
+### Composer ile Kurulum
+
+```bash
+# AdminKit package'ını yükleyin
+composer require turkpin/admin-kit
+
+# Otomatik kurulum
+php vendor/bin/adminkit install
+
+# Asset'leri yayınlayın
+php vendor/bin/adminkit publish:assets
+```
+
+### CLI Kurulum Adımları
+
+AdminKit güçlü CLI araçları ile gelir:
+
+```bash
+# 1. Package kurulumu
+composer require turkpin/admin-kit
+
+# 2. Otomatik setup (config, assets, migrations)
+php vendor/bin/adminkit install
+
+# 3. Veritabanı migration
+php vendor/bin/adminkit migrate
+
+# 4. Admin kullanıcı oluştur
+php vendor/bin/adminkit user:create
+
+# 5. Sunucuyu başlat
+php -S localhost:8000 -t public
+```
+
+### Manual Kurulum
+
+```php
+<?php
+// public/index.php
+require_once '../vendor/autoload.php';
+
+use Turkpin\AdminKit\AdminKit;
+use Turkpin\AdminKit\Providers\AdminKitServiceProvider;
+
+// Konfigürasyon
+$config = require '../config/adminkit.php';
+
+// Service Provider ile başlat
+$container = new Container(); // PSR-11 container
+$provider = new AdminKitServiceProvider($container, $config);
+$provider->register();
+$provider->boot();
+
+// AdminKit instance oluştur
+$adminKit = $provider->createAdminKit();
+
+// Entity'leri tanımla
+$adminKit->addEntity('User', [
+    'table' => 'users',
+    'fields' => [
+        'name' => ['type' => 'text', 'label' => 'Ad Soyad', 'required' => true],
+        'email' => ['type' => 'email', 'label' => 'E-posta', 'required' => true],
+        'is_active' => ['type' => 'boolean', 'label' => 'Aktif']
+    ]
+]);
+
+// Uygulamayı çalıştır
+$adminKit->run();
+```
+
+## 🛠️ CLI Araçları
+
+AdminKit zengin CLI komutları sunar:
+
+### Kurulum ve Yönetim
+```bash
+# Kurulum ve güncelleme
+php vendor/bin/adminkit install          # İlk kurulum
+php vendor/bin/adminkit update           # Package güncelleme
+php vendor/bin/adminkit version          # Versiyon bilgisi
+
+# Asset yönetimi
+php vendor/bin/adminkit publish:assets   # Asset'leri yayınla
+php vendor/bin/adminkit publish:templates # Template'leri yayınla
+php vendor/bin/adminkit publish:migrations # Migration'ları yayınla
+```
+
+### Veritabanı İşlemleri
+```bash
+# Migration ve seed
+php vendor/bin/adminkit migrate          # Migration'ları çalıştır
+php vendor/bin/adminkit seed             # Seed verilerini yükle
+php vendor/bin/adminkit migrate:reset    # Migration'ları sıfırla
+```
+
+### Kullanıcı Yönetimi
+```bash
+# Kullanıcı işlemleri
+php vendor/bin/adminkit user:create      # Admin kullanıcı oluştur
+php vendor/bin/adminkit user:password    # Kullanıcı şifresi değiştir
+php vendor/bin/adminkit user:2fa         # 2FA etkinleştir/devre dışı
+```
+
+### Sunucu İşlemleri
+```bash
+# Sunucu servisleri
+php vendor/bin/adminkit serve            # Development server başlat
+php vendor/bin/adminkit queue:work       # Queue worker başlat
+php vendor/bin/adminkit websocket:start  # WebSocket server başlat
+```
+
+### Cache ve Temizlik
+```bash
+# Cache işlemleri
+php vendor/bin/adminkit cache:clear      # Cache temizle
+php vendor/bin/adminkit cache:warm       # Cache'i ısıt
+php vendor/bin/adminkit cache:status     # Cache durumu
+
+# Temizlik işlemleri
+php vendor/bin/adminkit cleanup:logs     # Log dosyalarını temizle
+php vendor/bin/adminkit cleanup:temp     # Temp dosyalarını temizle
+```
+
 ## 📚 Dokümantasyon
 
 AdminKit kapsamlı dokümantasyon sistemine sahiptir:
@@ -20,12 +145,12 @@ AdminKit kapsamlı dokümantasyon sistemine sahiptir:
 ### 🚀 Başlangıç Rehberleri
 - **[Kurulum Rehberi](docs/installation.md)** - Sistem gereksinimleri ve adım adım kurulum
 - **[Hızlı Başlangıç](docs/quick-start.md)** - 5 dakikada çalışan blog sistemi
-- **[Konfigürasyon](docs/configuration.md)** - Detaylı yapılandırma seçenekleri
+- **[CLI Araçları](docs/cli-tools.md)** - Tüm CLI komutları ve kullanımları
 
 ### 📖 Kullanım Kılavuzları
 - **[Alan Türleri](docs/field-types.md)** - 14 farklı alan türü ve kullanımları
+- **[Service Provider](docs/service-provider.md)** - Dependency injection ve servis yönetimi
 - **[API Referansı](docs/api-reference.md)** - Tam API dokümantasyonu
-- **[Deployment](docs/deployment.md)** - Production ortamına yayınlama
 
 ### 🏢 Enterprise Servisler
 - **[Queue Service](docs/services/queue-service.md)** - Arkaplan işleme ve zamanlanmış görevler
@@ -39,16 +164,19 @@ AdminKit kapsamlı dokümantasyon sistemine sahiptir:
 - **[Temel CRUD](docs/tutorials/basic-crud.md)** - İlk entity'nizi oluşturun
 - **[E-ticaret Setup](docs/tutorials/ecommerce-setup.md)** - Online mağaza admin paneli
 - **[Blog CMS](docs/tutorials/blog-management.md)** - İçerik yönetim sistemi
-- **[Daha Fazla Örnek](docs/examples/)** - Hazır kullanıma ready projeler
-
-### 🔧 Gelişmiş Konular
-- **[Güvenlik](docs/advanced/security.md)** - 2FA ve güvenlik best practices
-- **[Performans](docs/advanced/performance.md)** - Optimizasyon teknikleri
-- **[Özelleştirme](docs/advanced/customization.md)** - Theme ve UI özelleştirme
+- **[Package Integration](docs/tutorials/package-integration.md)** - Mevcut projeye entegrasyon
 
 **➡️ [Tüm Dokümantasyon](docs/)** - Kapsamlı rehber ve örnekler
 
-## Özellikler
+## ✨ Özellikler
+
+### Package Özellikleri
+- **🎯 Tek komut kurulum**: `composer require turkpin/admin-kit`
+- **⚡ Otomatik setup**: CLI installer ile hızlı kurulum
+- **🏗️ Service Provider**: Modern dependency injection
+- **📦 Asset Management**: Otomatik asset publishing ve versioning
+- **🔧 CLI Tools**: 20+ yönetim komutu
+- **🌍 Multi-environment**: Development/production konfigürasyonu
 
 ### Temel Özellikler
 - CRUD operasyonları ve entity yönetimi
@@ -75,24 +203,30 @@ AdminKit kapsamlı dokümantasyon sistemine sahiptir:
 - **Dynamic Forms**: Koşullu alanlar, çok adımlı formlar, otomatik kaydet
 - **Breadcrumb Navigation**: Otomatik breadcrumb oluşturma ve hiyerarşik navigasyon
 
-## Sistem Gereksinimleri
+## 🔧 Sistem Gereksinimleri
 
-- PHP 8.1 veya üzeri
-- MySQL 5.7+ veya PostgreSQL 12+
-- Composer
-- Web sunucusu (Apache/Nginx)
+### Minimum Gereksinimler
+- **PHP**: 8.1 veya üzeri
+- **MySQL**: 5.7+ veya **PostgreSQL**: 12+
+- **Composer**: 2.0+
+- **Web Sunucusu**: Apache/Nginx
+- **Memory**: 256MB (512MB önerilen)
 
-## Kurulum
-
+### Önerilen PHP Uzantıları
 ```bash
-composer require turkpin/admin-kit
+# Zorunlu uzantılar
+php-pdo php-pdo-mysql php-mbstring php-openssl php-json
+
+# Önerilen uzantılar (Enterprise özellikler için)
+php-redis     # Cache ve Queue için
+php-gd        # Resim işlemleri için
+php-zip       # Asset bundling için
+php-intl      # Gelişmiş i18n için
 ```
 
-**Detaylı kurulum için**: [Kurulum Rehberi](docs/installation.md)
+## 🚀 Hızlı Başlangıç Örnekleri
 
-## Temel Kullanım
-
-### 1. Basit Kurulum
+### 1. Basit Blog Sistemi (5 dakika)
 
 ```php
 <?php
@@ -100,214 +234,230 @@ require_once 'vendor/autoload.php';
 
 use Turkpin\AdminKit\AdminKit;
 
-// AdminKit'i başlat
 $adminKit = new AdminKit([
     'database' => [
         'driver' => 'mysql',
         'host' => 'localhost',
-        'database' => 'admin_db',
+        'database' => 'blog_db',
         'username' => 'root',
-        'password' => '',
-        'charset' => 'utf8mb4'
-    ],
-    'auth' => [
-        'enabled' => true,
-        '2fa_enabled' => true
-    ],
-    'cache' => [
-        'enabled' => true,
-        'driver' => 'file'
-    ],
-    'websocket' => [
-        'enabled' => true,
-        'port' => 8080
+        'password' => ''
     ]
 ]);
 
-// Entity tanımla
-$adminKit->addEntity('User', [
-    'table' => 'users',
+// Blog kategorileri
+$adminKit->addEntity('Category', [
+    'table' => 'categories',
     'fields' => [
-        'name' => ['type' => 'text', 'label' => 'Ad Soyad', 'required' => true],
-        'email' => ['type' => 'email', 'label' => 'E-posta', 'required' => true],
-        'phone' => ['type' => 'text', 'label' => 'Telefon'],
-        'avatar' => ['type' => 'image', 'label' => 'Profil Fotoğrafı'],
-        'is_active' => ['type' => 'boolean', 'label' => 'Aktif'],
-        'created_at' => ['type' => 'datetime', 'label' => 'Kayıt Tarihi']
-    ],
-    'list_fields' => ['name', 'email', 'is_active', 'created_at'],
-    'filters' => ['name', 'email', 'is_active'],
-    'searchable' => ['name', 'email'],
-    'sortable' => ['name', 'email', 'created_at']
+        'name' => ['type' => 'text', 'label' => 'Kategori Adı', 'required' => true],
+        'slug' => ['type' => 'text', 'label' => 'URL Slug'],
+        'is_active' => ['type' => 'boolean', 'label' => 'Aktif', 'default' => true]
+    ]
 ]);
 
-// Dashboard widget'ı ekle
-$adminKit->addWidget('user_count', [
-    'title' => 'Toplam Kullanıcı',
-    'value' => function() use ($adminKit) {
-        return $adminKit->getEntityCount('User');
-    },
-    'color' => 'blue'
+// Blog yazıları
+$adminKit->addEntity('Post', [
+    'table' => 'posts',
+    'fields' => [
+        'title' => ['type' => 'text', 'label' => 'Başlık', 'required' => true],
+        'content' => ['type' => 'textarea', 'label' => 'İçerik', 'rows' => 10],
+        'category_id' => [
+            'type' => 'association',
+            'label' => 'Kategori',
+            'target_entity' => 'Category',
+            'display_field' => 'name'
+        ],
+        'featured_image' => ['type' => 'image', 'label' => 'Öne Çıkan Resim'],
+        'published_at' => ['type' => 'datetime', 'label' => 'Yayın Tarihi']
+    ]
 ]);
 
-// Uygulamayı çalıştır
 $adminKit->run();
 ```
 
-**Daha fazla örnek için**: [Hızlı Başlangıç](docs/quick-start.md)
-
-### 2. Enterprise Özellikler
+### 2. Enterprise Özelliklerle
 
 ```php
-// Queue sistemi
-$adminKit->dispatchJob('email', [
-    'to' => 'user@example.com',
-    'subject' => 'Hoş Geldiniz'
-], ['queue' => 'high']);
+// Service Provider kullanımı
+use Turkpin\AdminKit\Providers\AdminKitServiceProvider;
 
-// 2FA etkinleştir
-$adminKit->enable2FA();
+$provider = new AdminKitServiceProvider($container, $config);
+$provider->register();
+$adminKit = $provider->createAdminKit();
 
-// Real-time bildirim gönder
-$adminKit->getWebSocketService()->sendToUser(123, [
-    'title' => 'Yeni Mesaj',
-    'message' => 'Size yeni bir mesaj geldi'
-]);
+// Enterprise servisleri kullan
+$queueService = $adminKit->getQueueService();
+$queueService->dispatch('email', ['to' => 'user@example.com']);
 
-// Performans izleme
-$metrics = $adminKit->getPerformanceService()->getMetrics();
+$performanceService = $adminKit->getPerformanceService();
+$metrics = $performanceService->getMetrics();
+
+$webSocketService = $adminKit->getWebSocketService();
+$webSocketService->broadcast('notification', ['message' => 'Hello World!']);
 ```
 
-**Enterprise özellikler için**: [Servis Dokümantasyonu](docs/services/)
+## 🏭 Production Deployment
 
-## Field Types
-
-AdminKit 14 farklı alan tipini destekler:
-
-### Text Fields
-- `text`: Tek satır metin
-- `textarea`: Çok satır metin
-- `email`: E-posta adresi
-- `password`: Şifre (güçlü şifre göstergesi ile)
-
-### Numeric Fields
-- `number`: Sayı
-- `money`: Para birimi
-
-### Date Fields
-- `date`: Tarih seçici
-- `datetime`: Tarih ve saat seçici
-
-### Boolean & Choice
-- `boolean`: Açık/kapalı
-- `choice`: Seçenek listesi
-
-### File Fields
-- `file`: Dosya yükleme
-- `image`: Resim yükleme (kırpma ve önizleme ile)
-
-### Relation Fields
-- `association`: Entity ilişkisi (autocomplete ile)
-- `collection`: Çoklu form koleksiyonu
-
-**Detaylı kullanım için**: [Alan Türleri Dokümantasyonu](docs/field-types.md)
-
-## API Kullanımı
-
-AdminKit otomatik REST API endpoints sağlar:
-
+### Composer Scripts
 ```bash
-# Kullanıcıları listele
-GET /api/users
+# Production optimizasyonu
+composer install --no-dev --optimize-autoloader
 
-# Kullanıcı detayı
-GET /api/users/{id}
-
-# Yeni kullanıcı oluştur
-POST /api/users
-
-# Kullanıcı güncelle
-PUT /api/users/{id}
-
-# Kullanıcı sil
-DELETE /api/users/{id}
-
-# Arama yap
-GET /api/users?search=ahmet
-
-# Filtreleme
-GET /api/users?filter[is_active]=true
-
-# Server-Sent Events endpoint
-GET /api/sse-messages
-
-# WebSocket bağlantı bilgileri
-GET /api/websocket/info
+# AdminKit production setup
+php vendor/bin/adminkit install --skip-dev
+php vendor/bin/adminkit cache:warm
+php vendor/bin/adminkit publish:assets --minify
 ```
 
-**API detayları için**: [API Referansı](docs/api-reference.md)
+### Supervisor Configuration
+```ini
+# /etc/supervisor/conf.d/adminkit-queue.conf
+[program:adminkit-queue]
+process_name=%(program_name)s_%(process_num)02d
+command=php /path/to/project/vendor/bin/adminkit queue:work
+autostart=true
+autorestart=true
+numprocs=3
+redirect_stderr=true
+stdout_logfile=/var/log/adminkit-queue.log
+```
 
-## Internationalization (i18n)
+### Nginx Configuration
+```nginx
+server {
+    listen 80;
+    server_name admin.example.com;
+    root /path/to/project/public;
+    index index.php;
 
-AdminKit 600+ çeviri anahtarı ile tam Türkçe ve İngilizce desteği sunar:
+    # AdminKit assets
+    location /assets/adminkit/ {
+        expires 1y;
+        add_header Cache-Control "public, immutable";
+    }
+
+    # WebSocket proxy
+    location /ws {
+        proxy_pass http://127.0.0.1:8080;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+    }
+    
+    location ~ \.php$ {
+        fastcgi_pass unix:/var/run/php/php8.1-fpm.sock;
+        fastcgi_index index.php;
+        include fastcgi_params;
+    }
+}
+```
+
+## 📊 Package Bilgileri
+
+### Composer Package
+- **Package Name**: `turkpin/admin-kit`
+- **Type**: `library`
+- **License**: `MIT`
+- **PHP Version**: `>=8.1`
+- **Namespace**: `Turkpin\AdminKit`
+
+### Version History
+- **v1.0.0**: Production release with full EasyAdmin parity + 20 superior features
+- **v0.9.x**: Beta releases with enterprise features
+- **v0.8.x**: Alpha releases with basic functionality
+
+### Dependencies
+```json
+{
+    "php": ">=8.1",
+    "slim/slim": "^4.0",
+    "doctrine/orm": "^2.15",
+    "smarty/smarty": "^4.3",
+    "symfony/console": "^6.0|^7.0"
+}
+```
+
+## 🌐 Internationalization
 
 ```php
-// Dil dosyasından çeviri al
+// Çeviri sistemi
 $localization = $adminKit->getLocalizationService();
 echo $localization->get('user_created'); // "Kullanıcı başarıyla oluşturuldu."
 
 // Parametreli çeviri
-echo $localization->get('welcome_message', ['name' => 'Ahmet']); // "Hoş geldiniz, Ahmet!"
+echo $localization->get('welcome_message', ['name' => 'Ahmet']);
 
-// Dil değiştir
-$localization->setLocale('en'); // İngilizce'ye geç
+// Dil değiştirme
+$localization->setLocale('en'); // English
+$localization->setLocale('tr'); // Türkçe
 ```
 
-**Çok dil desteği için**: [Internationalization Rehberi](docs/advanced/internationalization.md)
+## 🔗 API Kullanımı
 
-## Production Deployment
+AdminKit otomatik REST API endpoints sağlar:
 
 ```bash
-# Production optimizasyonları
-composer install --no-dev --optimize-autoloader
-php vendor/bin/adminkit cache:warm
-php vendor/bin/adminkit assets:build
+# CRUD operasyonları
+GET    /api/users              # Kullanıcıları listele
+GET    /api/users/{id}         # Kullanıcı detayı
+POST   /api/users              # Yeni kullanıcı
+PUT    /api/users/{id}         # Kullanıcı güncelle
+DELETE /api/users/{id}         # Kullanıcı sil
 
-# WebSocket sunucusunu başlat
-php vendor/bin/adminkit websocket:start
+# Filtreleme ve arama
+GET /api/users?search=ahmet
+GET /api/users?filter[is_active]=true
+GET /api/users?sort=created_at&order=desc
 
-# Queue worker'ını başlat
-php vendor/bin/adminkit queue:work
+# Real-time endpoints
+GET /api/sse-messages          # Server-Sent Events
+GET /api/websocket/info        # WebSocket bağlantı bilgileri
 ```
 
-**Production setup için**: [Deployment Rehberi](docs/deployment.md)
+## 📞 Destek ve Topluluk
 
-## Lisans
+### GitHub
+- **Repository**: [oktayaydogan/admin-kit](https://github.com/oktayaydogan/admin-kit)
+- **Issues**: Bug reports ve feature requests
+- **Discussions**: Topluluk tartışmaları
+- **Wiki**: Gelişmiş kullanım örnekleri
 
-MIT License. Detaylar için [LICENSE](LICENSE) dosyasına bakın.
+### Dokümantasyon
+- **[Resmi Dokümantasyon](docs/)** - Kapsamlı rehberler
+- **[API Reference](docs/api-reference.md)** - Tam API dokümantasyonu
+- **[Examples](docs/examples/)** - Gerçek dünya örnekleri
 
-## Destek
-
-Sorularınız için:
-- **[Dokümantasyon](docs/)** - Kapsamlı rehberler ve örnekler
-- **GitHub Issues**: [admin-kit/issues](https://github.com/turkpin/admin-kit/issues)
+### Türkçe Topluluk
+- **Türkçe Destek**: Tam Türkçe dokümantasyon
 - **E-posta**: support@turkpin.com
-- **Türkçe Destek**: Tam Türkçe dokümantasyon ve topluluk desteği
+- **Maintainer**: oktayaydogan@gmail.com
 
-## Katkıda Bulunma
+## 🤝 Katkıda Bulunma
 
 AdminKit açık kaynak bir projedir. Katkılarınızı bekliyoruz!
 
-1. Repository'yi fork edin
-2. Feature branch oluşturun (`git checkout -b feature/amazing-feature`)
-3. Değişikliklerinizi commit edin (`git commit -m 'feat: add amazing feature'`)
-4. Branch'inizi push edin (`git push origin feature/amazing-feature`)
-5. Pull Request oluşturun
+```bash
+# Development setup
+git clone https://github.com/oktayaydogan/admin-kit.git
+cd admin-kit
+composer install
+php vendor/bin/adminkit install --dev
+```
 
-Katkıda bulunmadan önce [CONTRIBUTING.md](CONTRIBUTING.md) dosyasını okuyun.
+Detaylı katkı rehberi için [CONTRIBUTING.md](CONTRIBUTING.md) dosyasını okuyun.
+
+## 📜 Lisans
+
+MIT License. Detaylar için [LICENSE](LICENSE) dosyasına bakın.
 
 ---
 
 **AdminKit** - Türk geliştiriciler için optimize edilmiş, EasyAdmin'den üstün enterprise admin panel çözümü.
 
-**[📚 Dokümantasyona Başla](docs/)** | **[🚀 Hızlı Kurulum](docs/installation.md)** | **[💡 Örnekleri İncele](docs/examples/)**
+### 🚀 Hemen Başlayın
+
+```bash
+composer require turkpin/admin-kit
+php vendor/bin/adminkit install
+```
+
+**[📚 Dokümantasyon](docs/)** | **[🛠️ CLI Rehberi](docs/cli-tools.md)** | **[💡 Örnekler](docs/examples/)** | **[🏗️ Service Provider](docs/service-provider.md)**
