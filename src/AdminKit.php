@@ -2,39 +2,35 @@
 
 declare(strict_types=1);
 
-namespace Turkpin\AdminKit;
+namespace AdminKit;
 
 use Slim\App;
 use Smarty;
 use Doctrine\ORM\EntityManagerInterface;
 use Psr\Container\ContainerInterface;
-use Turkpin\AdminKit\Services\ConfigService;
-use Turkpin\AdminKit\Services\SmartyService;
-use Turkpin\AdminKit\Services\AuthService;
-use Turkpin\AdminKit\Controllers\AuthController;
-use Turkpin\AdminKit\Controllers\DashboardController;
-use Turkpin\AdminKit\Controllers\CrudController;
-use Turkpin\AdminKit\Middleware\AuthMiddleware;
-use Turkpin\AdminKit\Middleware\RoleMiddleware;
+use AdminKit\Services\ConfigService;
+use AdminKit\Services\SmartyService;
+use AdminKit\Services\AuthService;
+use AdminKit\Controllers\AuthController;
+use AdminKit\Controllers\DashboardController;
+use AdminKit\Controllers\CrudController;
+use AdminKit\Middleware\AuthMiddleware;
+use AdminKit\Middleware\RoleMiddleware;
 
 class AdminKit
 {
     private App $app;
+    private ContainerInterface $container;
     private array $config;
-    private EntityManagerInterface $entityManager;
-    private Smarty $smarty;
     private array $entities = [];
     private array $widgets = [];
-    private ConfigService $configService;
-    private SmartyService $smartyService;
-    private AuthService $authService;
 
     public function __construct(App $app, array $config = [])
     {
         $this->app = $app;
+        $this->container = $app->getContainer();
         $this->config = array_merge($this->getDefaultConfig(), $config);
         
-        $this->validateConfig();
         $this->initializeServices();
         $this->setupMiddleware();
         $this->setupRoutes();
@@ -59,35 +55,20 @@ class AdminKit
         ];
     }
 
-    private function validateConfig(): void
-    {
-        if (!isset($this->config['doctrine'])) {
-            throw new \InvalidArgumentException('Doctrine EntityManager is required');
-        }
-
-        if (!isset($this->config['smarty'])) {
-            throw new \InvalidArgumentException('Smarty instance is required');
-        }
-
-        $this->entityManager = $this->config['doctrine'];
-        $this->smarty = $this->config['smarty'];
-    }
-
     private function initializeServices(): void
     {
-        $this->configService = new ConfigService($this->config);
-        $this->smartyService = new SmartyService($this->smarty, $this->config);
-        $this->authService = new AuthService($this->entityManager, $this->config);
+        // Services are managed by the container
+        // We'll get them when needed
     }
 
     private function setupMiddleware(): void
     {
         if ($this->config['auth_required']) {
-            $this->app->add(new AuthMiddleware($this->authService));
+            $this->app->add(new AuthMiddleware($this->getAuthService()));
         }
 
         if ($this->config['rbac_enabled']) {
-            $this->app->add(new RoleMiddleware($this->authService));
+            $this->app->add(new RoleMiddleware($this->getAuthService()));
         }
     }
 
@@ -211,16 +192,26 @@ class AdminKit
 
     public function getEntityManager(): EntityManagerInterface
     {
-        return $this->entityManager;
+        return $this->container->get(EntityManagerInterface::class);
     }
 
     public function getSmarty(): Smarty
     {
-        return $this->smarty;
+        return $this->container->get(Smarty::class);
     }
 
     public function getAuthService(): AuthService
     {
-        return $this->authService;
+        return $this->container->get(AuthService::class);
+    }
+
+    public function getContainer(): ContainerInterface
+    {
+        return $this->container;
+    }
+
+    public function getApp(): App
+    {
+        return $this->app;
     }
 }

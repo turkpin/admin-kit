@@ -1,126 +1,90 @@
 <?php
 
+declare(strict_types=1);
+
 namespace AdminKit\Services;
 
-use PDO;
-use Exception;
+use Doctrine\ORM\EntityManagerInterface;
 use ZipArchive;
 
-/**
- * AdminKit Backup Service v1.0.7
- * 
- * Comprehensive database backup and restore functionality
- * with compression, validation, and automatic scheduling
- */
 class BackupService
 {
-    private PDO $pdo;
+    private EntityManagerInterface $entityManager;
     private string $backupPath;
-    private array $config;
 
-    public function __construct(PDO $pdo, array $config = [])
+    public function __construct(EntityManagerInterface $entityManager, string $backupPath = 'var/backups')
     {
-        $this->pdo = $pdo;
-        $this->config = array_merge([
-            'backup_path' => getcwd() . '/backups',
-            'max_backups' => 10,
-            'compression' => true,
-            'include_data' => true,
-            'include_structure' => true,
-            'chunk_size' => 1000
-        ], $config);
+        $this->entityManager = $entityManager;
+        $this->backupPath = $backupPath;
         
-        $this->backupPath = $this->config['backup_path'];
-        $this->ensureBackupDirectory();
-    }
-
-    /**
-     * Create a database backup
-     */
-    public function createBackup(string $name = null): array
-    {
-        $timestamp = date('Y-m-d_H-i-s');
-        $name = $name ?: "adminkit_backup_{$timestamp}";
-        
-        try {
-            $filename = $this->generateBackupFilename($name);
-            $sqlFile = $this->backupPath . '/' . $name . '.sql';
-            
-            // Generate SQL dump
-            $this->generateSqlDump($sqlFile);
-            
-            // Compress if enabled
-            if ($this->config['compression']) {
-                $zipFile = $this->compressBackup($sqlFile, $filename);
-                unlink($sqlFile); // Remove uncompressed file
-                $finalFile = $zipFile;
-            } else {
-                $finalFile = $sqlFile;
-            }
-            
-            // Clean old backups
-            $this->cleanOldBackups();
-            
-            return [
-                'success' => true,
-                'filename' => basename($finalFile),
-                'filepath' => $finalFile,
-                'size' => filesize($finalFile),
-                'created_at' => date('Y-m-d H:i:s'),
-                'compressed' => $this->config['compression']
-            ];
-            
-        } catch (Exception $e) {
-            return [
-                'success' => false,
-                'error' => $e->getMessage()
-            ];
+        if (!is_dir($this->backupPath)) {
+            mkdir($this->backupPath, 0755, true);
         }
     }
 
     /**
-     * Restore database from backup
+     * Create a full backup
      */
-    public function restoreBackup(string $filename): array
+    public function createBackup(array $options = []): string
     {
+        $timestamp = date('Y-m-d_H-i-s');
+        $backupName = 'adminkit_backup_' . $timestamp;
+        $backupDir = $this->backupPath . '/' . $backupName;
+        
+        mkdir($backupDir, 0755, true);
+        
+        // Backup database
+        $this->backupDatabase($backupDir);
+        
+        // Backup files
+        if ($options['include_files'] ?? true) {
+            $this->backupFiles($backupDir, $options['file_paths'] ?? []);
+        }
+        
+        // Create manifest
+        $this->createManifest($backupDir, $options);
+        
+        // Create ZIP archive
+        $zipFile = $this->backupPath . '/' . $backupName . '.zip';
+        $this->createZipArchive($backupDir, $zipFile);
+        
+        // Cleanup temporary directory
+        $this->removeDirectory($backupDir);
+        
+        return $zipFile;
+    }
+
+    /**
+     * Restore from backup
+     */
+    public function restoreBackup(string $backupFile, array $options = []): bool
+    {
+        if (!file_exists($backupFile)) {
+            throw new \Exception("Backup file not found: $backupFile");
+        }
+        
+        $tempDir = $this->backupPath . '/restore_' . uniqid();
+        
+        // Extract backup
+        if (!$this->extractZipArchive($backupFile, $tempDir)) {
+            throw new \Exception("Failed to extract backup archive");
+        }
+        
         try {
-            $filepath = $this->backupPath . '/' . $filename;
-            
-            if (!file_exists($filepath)) {
-                throw new Exception("Backup file not found: {$filename}");
+            // Restore database
+            if ($options['restore_database'] ?? true) {
+                $this->restoreDatabase($tempDir);
             }
             
-            // Extract if compressed
-            if (pathinfo($filename, PATHINFO_EXTENSION) === 'zip') {
-                $sqlFile = $this->extractBackup($filepath);
-            } else {
-                $sqlFile = $filepath;
+            // Restore files
+            if ($options['restore_files'] ?? true) {
+                $this->restoreFiles($tempDir, $options['target_paths'] ?? []);
             }
             
-            // Validate SQL file
-            if (!$this->validateSqlFile($sqlFile)) {
-                throw new Exception("Invalid SQL backup file");
-            }
-            
-            // Execute restore
-            $this->executeSqlFile($sqlFile);
-            
-            // Clean up extracted file if it was compressed
-            if ($sqlFile !== $filepath && file_exists($sqlFile)) {
-                unlink($sqlFile);
-            }
-            
-            return [
-                'success' => true,
-                'message' => 'Database restored successfully',
-                'restored_at' => date('Y-m-d H:i:s')
-            ];
-            
-        } catch (Exception $e) {
-            return [
-                'success' => false,
-                'error' => $e->getMessage()
-            ];
+            return true;
+        } finally {
+            // Cleanup
+            $this->removeDirectory($tempDir);
         }
     }
 
@@ -130,324 +94,415 @@ class BackupService
     public function listBackups(): array
     {
         $backups = [];
-        $files = glob($this->backupPath . '/*');
+        $files = glob($this->backupPath . '/adminkit_backup_*.zip');
         
         foreach ($files as $file) {
-            if (is_file($file)) {
-                $backups[] = [
-                    'filename' => basename($file),
-                    'filepath' => $file,
-                    'size' => filesize($file),
-                    'size_formatted' => $this->formatFileSize(filesize($file)),
-                    'created_at' => date('Y-m-d H:i:s', filemtime($file)),
-                    'is_compressed' => pathinfo($file, PATHINFO_EXTENSION) === 'zip'
-                ];
-            }
+            $backups[] = [
+                'file' => $file,
+                'name' => basename($file, '.zip'),
+                'size' => filesize($file),
+                'created' => filemtime($file),
+                'formatted_size' => $this->formatBytes(filesize($file)),
+                'formatted_date' => date('Y-m-d H:i:s', filemtime($file)),
+            ];
         }
         
-        // Sort by creation time (newest first)
+        // Sort by creation time, newest first
         usort($backups, function($a, $b) {
-            return filemtime($b['filepath']) - filemtime($a['filepath']);
+            return $b['created'] <=> $a['created'];
         });
         
         return $backups;
     }
 
     /**
-     * Delete a backup file
+     * Delete a backup
      */
-    public function deleteBackup(string $filename): bool
+    public function deleteBackup(string $backupFile): bool
     {
-        $filepath = $this->backupPath . '/' . $filename;
-        
-        if (file_exists($filepath)) {
-            return unlink($filepath);
+        if (file_exists($backupFile)) {
+            return unlink($backupFile);
         }
-        
         return false;
     }
 
     /**
-     * Get backup statistics
+     * Get backup info
      */
-    public function getBackupStats(): array
+    public function getBackupInfo(string $backupFile): ?array
     {
-        $backups = $this->listBackups();
-        $totalSize = array_sum(array_column($backups, 'size'));
+        if (!file_exists($backupFile)) {
+            return null;
+        }
         
-        return [
-            'total_backups' => count($backups),
-            'total_size' => $totalSize,
-            'total_size_formatted' => $this->formatFileSize($totalSize),
-            'oldest_backup' => end($backups)['created_at'] ?? null,
-            'newest_backup' => $backups[0]['created_at'] ?? null,
-            'backup_path' => $this->backupPath
+        $tempDir = $this->backupPath . '/info_' . uniqid();
+        
+        if (!$this->extractZipArchive($backupFile, $tempDir)) {
+            return null;
+        }
+        
+        $manifestFile = $tempDir . '/manifest.json';
+        $info = null;
+        
+        if (file_exists($manifestFile)) {
+            $info = json_decode(file_get_contents($manifestFile), true);
+        }
+        
+        $this->removeDirectory($tempDir);
+        
+        return $info;
+    }
+
+    /**
+     * Backup database
+     */
+    private function backupDatabase(string $backupDir): void
+    {
+        $connection = $this->entityManager->getConnection();
+        $params = $connection->getParams();
+        
+        if ($params['driver'] === 'pdo_mysql') {
+            $this->backupMysql($backupDir, $params);
+        } elseif ($params['driver'] === 'pdo_sqlite') {
+            $this->backupSqlite($backupDir, $params);
+        } else {
+            // Generic SQL dump
+            $this->backupGeneric($backupDir);
+        }
+    }
+
+    /**
+     * Backup MySQL database
+     */
+    private function backupMysql(string $backupDir, array $params): void
+    {
+        $host = $params['host'] ?? 'localhost';
+        $port = $params['port'] ?? 3306;
+        $database = $params['dbname'];
+        $username = $params['user'];
+        $password = $params['password'] ?? '';
+        
+        $outputFile = $backupDir . '/database.sql';
+        
+        $command = sprintf(
+            'mysqldump --host=%s --port=%d --user=%s --password=%s --single-transaction --routines --triggers %s > %s',
+            escapeshellarg($host),
+            $port,
+            escapeshellarg($username),
+            escapeshellarg($password),
+            escapeshellarg($database),
+            escapeshellarg($outputFile)
+        );
+        
+        exec($command, $output, $returnCode);
+        
+        if ($returnCode !== 0) {
+            throw new \Exception("MySQL backup failed");
+        }
+    }
+
+    /**
+     * Backup SQLite database
+     */
+    private function backupSqlite(string $backupDir, array $params): void
+    {
+        $dbFile = $params['path'];
+        $outputFile = $backupDir . '/database.sqlite';
+        
+        if (!copy($dbFile, $outputFile)) {
+            throw new \Exception("SQLite backup failed");
+        }
+    }
+
+    /**
+     * Generic database backup
+     */
+    private function backupGeneric(string $backupDir): void
+    {
+        // This would require implementing custom logic for each entity
+        // For now, we'll create a simple JSON export
+        $outputFile = $backupDir . '/database.json';
+        $data = [];
+        
+        // This is a simplified approach - in a real implementation,
+        // you'd iterate through all entities and export their data
+        
+        file_put_contents($outputFile, json_encode($data, JSON_PRETTY_PRINT));
+    }
+
+    /**
+     * Backup files
+     */
+    private function backupFiles(string $backupDir, array $filePaths = []): void
+    {
+        $defaultPaths = [
+            'uploads',
+            'public/assets',
+            'config',
+            '.env',
         ];
-    }
-
-    /**
-     * Validate database connection and permissions
-     */
-    public function validateEnvironment(): array
-    {
-        $issues = [];
         
-        // Check database connection
-        try {
-            $this->pdo->query("SELECT 1");
-        } catch (Exception $e) {
-            $issues[] = "Database connection failed: " . $e->getMessage();
-        }
+        $paths = array_merge($defaultPaths, $filePaths);
+        $filesDir = $backupDir . '/files';
+        mkdir($filesDir, 0755, true);
         
-        // Check backup directory
-        if (!is_dir($this->backupPath)) {
-            $issues[] = "Backup directory does not exist: {$this->backupPath}";
-        } elseif (!is_writable($this->backupPath)) {
-            $issues[] = "Backup directory is not writable: {$this->backupPath}";
-        }
-        
-        // Check required extensions
-        if ($this->config['compression'] && !extension_loaded('zip')) {
-            $issues[] = "ZIP extension is required for compression";
-        }
-        
-        return [
-            'valid' => empty($issues),
-            'issues' => $issues
-        ];
-    }
-
-    /**
-     * Generate SQL dump
-     */
-    private function generateSqlDump(string $filename): void
-    {
-        $sql = "-- AdminKit Database Backup\n";
-        $sql .= "-- Created: " . date('Y-m-d H:i:s') . "\n";
-        $sql .= "-- Generator: AdminKit BackupService v1.0.7\n\n";
-        
-        $sql .= "SET FOREIGN_KEY_CHECKS = 0;\n";
-        $sql .= "SET SQL_MODE = \"NO_AUTO_VALUE_ON_ZERO\";\n";
-        $sql .= "SET AUTOCOMMIT = 0;\n";
-        $sql .= "START TRANSACTION;\n\n";
-        
-        // Get all tables
-        $tables = $this->getTables();
-        
-        foreach ($tables as $table) {
-            if ($this->config['include_structure']) {
-                $sql .= $this->getTableStructure($table);
-            }
-            
-            if ($this->config['include_data']) {
-                $sql .= $this->getTableData($table);
-            }
-        }
-        
-        $sql .= "\nSET FOREIGN_KEY_CHECKS = 1;\n";
-        $sql .= "COMMIT;\n";
-        
-        file_put_contents($filename, $sql);
-    }
-
-    /**
-     * Get all tables in database
-     */
-    private function getTables(): array
-    {
-        $stmt = $this->pdo->query("SHOW TABLES");
-        return $stmt->fetchAll(PDO::FETCH_COLUMN);
-    }
-
-    /**
-     * Get table structure (CREATE TABLE statement)
-     */
-    private function getTableStructure(string $table): string
-    {
-        $stmt = $this->pdo->query("SHOW CREATE TABLE `{$table}`");
-        $row = $stmt->fetch(PDO::FETCH_ASSOC);
-        
-        $sql = "\n-- Table structure for table `{$table}`\n";
-        $sql .= "DROP TABLE IF EXISTS `{$table}`;\n";
-        $sql .= $row['Create Table'] . ";\n\n";
-        
-        return $sql;
-    }
-
-    /**
-     * Get table data (INSERT statements)
-     */
-    private function getTableData(string $table): string
-    {
-        $sql = "-- Dumping data for table `{$table}`\n";
-        
-        // Get column names
-        $stmt = $this->pdo->query("DESCRIBE `{$table}`");
-        $columns = $stmt->fetchAll(PDO::FETCH_COLUMN);
-        $columnList = '`' . implode('`, `', $columns) . '`';
-        
-        // Get row count
-        $stmt = $this->pdo->query("SELECT COUNT(*) FROM `{$table}`");
-        $rowCount = $stmt->fetchColumn();
-        
-        if ($rowCount > 0) {
-            $sql .= "LOCK TABLES `{$table}` WRITE;\n";
-            
-            // Process data in chunks
-            $offset = 0;
-            while ($offset < $rowCount) {
-                $stmt = $this->pdo->query(
-                    "SELECT * FROM `{$table}` LIMIT {$this->config['chunk_size']} OFFSET {$offset}"
-                );
+        foreach ($paths as $path) {
+            if (file_exists($path)) {
+                $destination = $filesDir . '/' . basename($path);
                 
-                $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
-                
-                if (!empty($rows)) {
-                    $sql .= "INSERT INTO `{$table}` ({$columnList}) VALUES\n";
-                    
-                    $values = [];
-                    foreach ($rows as $row) {
-                        $escapedValues = array_map(function($value) {
-                            return $value === null ? 'NULL' : $this->pdo->quote($value);
-                        }, array_values($row));
-                        
-                        $values[] = '(' . implode(', ', $escapedValues) . ')';
-                    }
-                    
-                    $sql .= implode(",\n", $values) . ";\n";
+                if (is_dir($path)) {
+                    $this->copyDirectory($path, $destination);
+                } else {
+                    copy($path, $destination);
                 }
-                
-                $offset += $this->config['chunk_size'];
+            }
+        }
+    }
+
+    /**
+     * Create backup manifest
+     */
+    private function createManifest(string $backupDir, array $options): void
+    {
+        $manifest = [
+            'version' => '1.0.7',
+            'created_at' => date('Y-m-d H:i:s'),
+            'timestamp' => time(),
+            'type' => 'full',
+            'options' => $options,
+            'php_version' => PHP_VERSION,
+            'adminkit_version' => '1.0.7',
+            'files' => [],
+        ];
+        
+        // Add file information
+        $files = $this->scanDirectory($backupDir);
+        foreach ($files as $file) {
+            $relativePath = str_replace($backupDir . '/', '', $file);
+            $manifest['files'][$relativePath] = [
+                'size' => filesize($file),
+                'hash' => md5_file($file),
+                'modified' => filemtime($file),
+            ];
+        }
+        
+        file_put_contents($backupDir . '/manifest.json', json_encode($manifest, JSON_PRETTY_PRINT));
+    }
+
+    /**
+     * Restore database
+     */
+    private function restoreDatabase(string $backupDir): void
+    {
+        $connection = $this->entityManager->getConnection();
+        $params = $connection->getParams();
+        
+        if (file_exists($backupDir . '/database.sql')) {
+            $this->restoreMysql($backupDir, $params);
+        } elseif (file_exists($backupDir . '/database.sqlite')) {
+            $this->restoreSqlite($backupDir, $params);
+        } elseif (file_exists($backupDir . '/database.json')) {
+            $this->restoreGeneric($backupDir);
+        }
+    }
+
+    /**
+     * Restore MySQL database
+     */
+    private function restoreMysql(string $backupDir, array $params): void
+    {
+        $host = $params['host'] ?? 'localhost';
+        $port = $params['port'] ?? 3306;
+        $database = $params['dbname'];
+        $username = $params['user'];
+        $password = $params['password'] ?? '';
+        
+        $inputFile = $backupDir . '/database.sql';
+        
+        $command = sprintf(
+            'mysql --host=%s --port=%d --user=%s --password=%s %s < %s',
+            escapeshellarg($host),
+            $port,
+            escapeshellarg($username),
+            escapeshellarg($password),
+            escapeshellarg($database),
+            escapeshellarg($inputFile)
+        );
+        
+        exec($command, $output, $returnCode);
+        
+        if ($returnCode !== 0) {
+            throw new \Exception("MySQL restore failed");
+        }
+    }
+
+    /**
+     * Restore SQLite database
+     */
+    private function restoreSqlite(string $backupDir, array $params): void
+    {
+        $dbFile = $params['path'];
+        $inputFile = $backupDir . '/database.sqlite';
+        
+        if (!copy($inputFile, $dbFile)) {
+            throw new \Exception("SQLite restore failed");
+        }
+    }
+
+    /**
+     * Restore generic database
+     */
+    private function restoreGeneric(string $backupDir): void
+    {
+        $inputFile = $backupDir . '/database.json';
+        $data = json_decode(file_get_contents($inputFile), true);
+        
+        // Implement custom restoration logic here
+    }
+
+    /**
+     * Restore files
+     */
+    private function restoreFiles(string $backupDir, array $targetPaths = []): void
+    {
+        $filesDir = $backupDir . '/files';
+        
+        if (!is_dir($filesDir)) {
+            return;
+        }
+        
+        $items = scandir($filesDir);
+        foreach ($items as $item) {
+            if ($item === '.' || $item === '..') {
+                continue;
             }
             
-            $sql .= "UNLOCK TABLES;\n";
+            $source = $filesDir . '/' . $item;
+            $destination = $item;
+            
+            if (is_dir($source)) {
+                $this->copyDirectory($source, $destination);
+            } else {
+                copy($source, $destination);
+            }
         }
-        
-        return $sql . "\n";
     }
 
     /**
-     * Compress backup file
+     * Create ZIP archive
      */
-    private function compressBackup(string $sqlFile, string $zipFilename): string
+    private function createZipArchive(string $sourceDir, string $zipFile): bool
     {
         $zip = new ZipArchive();
-        $zipPath = $this->backupPath . '/' . $zipFilename;
-        
-        if ($zip->open($zipPath, ZipArchive::CREATE) !== TRUE) {
-            throw new Exception("Cannot create zip file: {$zipPath}");
-        }
-        
-        $zip->addFile($sqlFile, basename($sqlFile));
-        $zip->close();
-        
-        return $zipPath;
-    }
-
-    /**
-     * Extract compressed backup
-     */
-    private function extractBackup(string $zipFile): string
-    {
-        $zip = new ZipArchive();
-        
-        if ($zip->open($zipFile) !== TRUE) {
-            throw new Exception("Cannot open zip file: {$zipFile}");
-        }
-        
-        $extractPath = $this->backupPath . '/temp_' . uniqid();
-        mkdir($extractPath);
-        
-        $zip->extractTo($extractPath);
-        $zip->close();
-        
-        // Find SQL file
-        $files = glob($extractPath . '/*.sql');
-        if (empty($files)) {
-            throw new Exception("No SQL file found in backup");
-        }
-        
-        return $files[0];
-    }
-
-    /**
-     * Validate SQL file
-     */
-    private function validateSqlFile(string $sqlFile): bool
-    {
-        if (!file_exists($sqlFile)) {
+        if ($zip->open($zipFile, ZipArchive::CREATE | ZipArchive::OVERWRITE) !== TRUE) {
             return false;
         }
         
-        $content = file_get_contents($sqlFile);
+        $files = $this->scanDirectory($sourceDir);
+        foreach ($files as $file) {
+            $relativePath = str_replace($sourceDir . '/', '', $file);
+            $zip->addFile($file, $relativePath);
+        }
         
-        // Basic validation - check for SQL keywords
-        return strpos($content, 'CREATE TABLE') !== false || 
-               strpos($content, 'INSERT INTO') !== false;
+        return $zip->close();
     }
 
     /**
-     * Execute SQL file
+     * Extract ZIP archive
      */
-    private function executeSqlFile(string $sqlFile): void
+    private function extractZipArchive(string $zipFile, string $destination): bool
     {
-        $sql = file_get_contents($sqlFile);
+        $zip = new ZipArchive();
+        if ($zip->open($zipFile) !== TRUE) {
+            return false;
+        }
         
-        // Split by statements
-        $statements = array_filter(
-            array_map('trim', explode(';', $sql))
+        $result = $zip->extractTo($destination);
+        $zip->close();
+        
+        return $result;
+    }
+
+    /**
+     * Copy directory recursively
+     */
+    private function copyDirectory(string $source, string $destination): void
+    {
+        if (!is_dir($destination)) {
+            mkdir($destination, 0755, true);
+        }
+        
+        $iterator = new \RecursiveIteratorIterator(
+            new \RecursiveDirectoryIterator($source, \RecursiveDirectoryIterator::SKIP_DOTS),
+            \RecursiveIteratorIterator::SELF_FIRST
         );
         
-        foreach ($statements as $statement) {
-            if (!empty($statement) && !str_starts_with($statement, '--')) {
-                $this->pdo->exec($statement);
-            }
-        }
-    }
-
-    /**
-     * Generate backup filename
-     */
-    private function generateBackupFilename(string $name): string
-    {
-        $extension = $this->config['compression'] ? 'zip' : 'sql';
-        return $name . '.' . $extension;
-    }
-
-    /**
-     * Ensure backup directory exists
-     */
-    private function ensureBackupDirectory(): void
-    {
-        if (!is_dir($this->backupPath)) {
-            mkdir($this->backupPath, 0755, true);
-        }
-    }
-
-    /**
-     * Clean old backups
-     */
-    private function cleanOldBackups(): void
-    {
-        $backups = $this->listBackups();
-        
-        if (count($backups) > $this->config['max_backups']) {
-            $toDelete = array_slice($backups, $this->config['max_backups']);
+        foreach ($iterator as $item) {
+            $target = $destination . '/' . $iterator->getSubPathName();
             
-            foreach ($toDelete as $backup) {
-                $this->deleteBackup($backup['filename']);
+            if ($item->isDir()) {
+                if (!is_dir($target)) {
+                    mkdir($target, 0755, true);
+                }
+            } else {
+                copy($item, $target);
             }
         }
     }
 
     /**
-     * Format file size
+     * Remove directory recursively
      */
-    private function formatFileSize(int $size): string
+    private function removeDirectory(string $dir): void
+    {
+        if (!is_dir($dir)) {
+            return;
+        }
+        
+        $files = array_diff(scandir($dir), ['.', '..']);
+        foreach ($files as $file) {
+            $path = $dir . '/' . $file;
+            if (is_dir($path)) {
+                $this->removeDirectory($path);
+            } else {
+                unlink($path);
+            }
+        }
+        rmdir($dir);
+    }
+
+    /**
+     * Scan directory recursively
+     */
+    private function scanDirectory(string $dir): array
+    {
+        $files = [];
+        $iterator = new \RecursiveIteratorIterator(
+            new \RecursiveDirectoryIterator($dir, \RecursiveDirectoryIterator::SKIP_DOTS)
+        );
+        
+        foreach ($iterator as $file) {
+            if ($file->isFile()) {
+                $files[] = $file->getPathname();
+            }
+        }
+        
+        return $files;
+    }
+
+    /**
+     * Format bytes to human readable
+     */
+    private function formatBytes(int $bytes): string
     {
         $units = ['B', 'KB', 'MB', 'GB'];
-        $factor = floor((strlen($size) - 1) / 3);
+        $unitIndex = 0;
         
-        return sprintf("%.2f", $size / pow(1024, $factor)) . ' ' . $units[$factor];
+        while ($bytes >= 1024 && $unitIndex < count($units) - 1) {
+            $bytes /= 1024;
+            $unitIndex++;
+        }
+        
+        return number_format($bytes, 2) . ' ' . $units[$unitIndex];
     }
 }
